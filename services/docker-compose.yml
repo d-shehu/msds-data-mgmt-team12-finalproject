@@ -1,0 +1,113 @@
+version: '3.7'
+services:
+  #ui_app:
+  #  image: msds/spec_topics_ds/search_app
+  #search_service:
+  #  image: msds/spec_topics_ds/search_app
+  #Use for persisting data that is relatively uniform/static (user)
+  pgdb:
+    image: 'postgres'
+    restart: always  # Restart service if it fails
+    tty: true # Virtual terminal
+    container_name: 't12_final_project_pgdb'
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=md5
+      - POSTGRES_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      # On non-Linux "delegated" governs persistance behavior. With delegated
+      # the data in the container is authoritative and host data might be out
+      # of sync. Speeds up performance on Mac for example significantly.
+      - pgdata:/var/lib/postgresql/data:delegated
+    ports:
+    # Web port
+      - '25080:8080'
+    # DB Port
+      - '25432:5432'
+    hostname: pgdb
+    # For debugging
+    #command: /bin/bash -l
+  mongodb:
+    image: 'mongo'
+    restart: always
+    tty: true
+    container_name: 't12_final_project_mongodb'
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=t12
+      - MONGO_INITDB_ROOT_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
+    volumes:
+      - mongodata:/data/db:delegated
+    ports:
+    # Web port
+      - '25081:8081'
+    # DB Port
+      - '25017:27017'
+    hostname: mongodb
+    #command: /bin/bash -l
+  redis:
+    image: 'redis'
+    restart: always
+    tty: true
+    container_name: 't12_final_project_redisdb'
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=t12
+      - MONGO_INITDB_ROOT_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
+    volumes:
+      - redisdata:/data:delegated
+    ports:
+    # DB Port
+      - '25379:6379'
+    hostname: redisdb
+    # Pass in password as an additional argument to command
+    command: >
+      --requirepass ${T12_FINAL_PROJECT_DB_PASS}
+    #command: /bin/bash -l
+  # Analytics & programmable interface
+  jupyter:
+    image: "jupyter/minimal-notebook"
+    restart: always
+    tty: true
+    container_name: 't12_final_project_jupyter'
+    volumes:
+      # Notebooks don't change frequently so keep it synced on host
+      - workbooks:/home/jovyan/work:cached
+      # Input data is used by multiple services. Treat as read-only. 
+      - inputdata:/home/jovyan/data:ro
+    ports:
+    # Web URL
+      - '25888:8888'
+    hostname: jupyter
+    #command: /bin/bash -l
+volumes:
+  pgdata:
+      name: pgdata
+      driver_opts:
+        type: none
+        o: bind
+        device: ${T12_RUNTIME_DIR}/pgdata
+  mongodata:
+      name: mongodata
+      driver_opts:
+        type: none
+        o: bind
+        device: ${T12_RUNTIME_DIR}/mongodata
+  redisdata:
+    name: redisdata
+    driver_opts:
+      type: none
+      o: bind
+      device: ${T12_RUNTIME_DIR}/redisdata
+  workbooks:
+    name: workbooks
+    driver_opts:
+      type: none
+      o: bind
+      device: ${T12_RUNTIME_DIR}/workbooks
+  inputdata:
+    name: inputdata
+    driver_opts:
+      type: none
+      o: bind
+      device: ${T12_RUNTIME_DIR}/input
+  
+
