@@ -13,7 +13,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=md5
       - POSTGRES_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
-      - PGDATA=/var/lib/postgresql/data/pgdata
+      - PGDATA=/var/lib/postgresql/data/pgdata:delegated
     volumes:
       # On non-Linux "delegated" governs persistance behavior. With delegated
       # the data in the container is authoritative and host data might be out
@@ -49,9 +49,6 @@ services:
     restart: always
     tty: true
     container_name: 't12_final_project_redisdb'
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=t12
-      - MONGO_INITDB_ROOT_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
     volumes:
       - redisdata:/data:delegated
     ports:
@@ -64,10 +61,14 @@ services:
     #command: /bin/bash -l
   # Analytics & programmable interface
   jupyter:
-    image: "jupyter/minimal-notebook"
+    image: "msds_data_mgmt_t12_final_project/jupyter"
     restart: always
     tty: true
     container_name: 't12_final_project_jupyter'
+    environment:
+      - MONGO_DB_USERNAME=t12
+      - PG_DB_USERNAME=postgres #TODO: replace with t12 user
+      - POSTGRES_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
     volumes:
       # Notebooks don't change frequently so keep it synced on host
       - workbooks:/home/jovyan/work:cached

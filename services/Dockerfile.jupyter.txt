@@ -1,0 +1,12 @@
+FROM jupyter/minimal-notebook:latest
+
+USER root
+
+RUN apt-get update
+
+# Switch back to jovyan to finish installing packages
+USER ${NB_UID}
+
+# Install some packages for the data store Mongo, Postgres and Redis
+# Postgres uses the psycopg (v3) from the conda channel
+RUN conda install -y -c conda-forge pandas pymongo psycopg redis-py
