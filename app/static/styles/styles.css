@@ -1,0 +1,101 @@
+.parentContainer {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.sidenav {
+    margin: 0px 0px 0px 0px;
+    width: 300px;
+    background-color: #cccccc;
+    color: black;
+    overflow-x: hidden;
+    padding: 10px;
+}
+
+.accordion {
+    background-color: #bbbbbb;
+    color: #444;
+    cursor: pointer;
+    margin-left: 20px;
+    padding: 10px;
+    width: 250px;
+    text-align: left;
+    border: none;
+    outline: none;
+    transition: 0.4s;
+}
+
+/* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+.active,
+.accordion:hover {
+    background-color: #aaaaaa;
+}
+
+/* Style the accordion panel. Note: hidden by default */
+.panel {
+    padding: 5px;
+    width: 240px;
+    background-color: ddddddd;
+    display: none;
+    overflow: hidden;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.textInput {
+    width: 220px;
+
+    box-sizing: border-box;
+    /*  make border/padding size be
+            included in the set width  */
+}
+
+.mainBody{
+    margin: 0px;
+    flex-grow: 1;
+    border: 1px solid #aaaaaa;
+    background-color: #f0f0f0;
+    overflow: hidden;
+    padding-top: 20px;
+}
+
+/* Style the tab */
+.tab {
+    border: 1px solid #ccc;
+    background-color: #f1f1f1;
+    color: black;
+    overflow: hidden;
+    padding-top: 0px;
+}
+
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 14px;
+    transition: 0.3s;
+}
+
+/* Change background color of buttons on hover */
+.tab button:hover {
+    background-color: #ddd;
+}
+
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: #ccc;
+}
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    border-top: none;
+    color: black;
+    overflow: hidden;
+    word-wrap: break-word;
+}

@@ -68,7 +68,7 @@ services:
     environment:
       - MONGO_DB_USERNAME=t12
       - PG_DB_USERNAME=postgres #TODO: replace with t12 user
-      - POSTGRES_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
+      - DB_PASSWORD=${T12_FINAL_PROJECT_DB_PASS}
     volumes:
       # Notebooks don't change frequently so keep it synced on host
       - workbooks:/home/jovyan/work:cached
@@ -79,6 +79,9 @@ services:
       - '25888:8888'
     hostname: jupyter
     #command: /bin/bash -l
+networks:
+  default:
+    name: msds_data_mgmg_final_project_network
 volumes:
   pgdata:
       name: pgdata

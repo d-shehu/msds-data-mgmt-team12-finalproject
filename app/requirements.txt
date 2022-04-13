@@ -1,0 +1,12 @@
+# Requirements for the Web App - Search Frontend
+# These should be synced up with the dependencies in the
+# associated Jupyter notebook. 
+
+###### Requirements without Version Specifiers ######
+pandas 
+pymongo 
+psycopg 
+redis
+Flask
+
+###### Requirements with Version Specifiers ######

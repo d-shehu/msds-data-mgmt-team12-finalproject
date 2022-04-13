@@ -1,0 +1,141 @@
+<html>
+    <head>
+        <title>MSDS - Data Mgmt - Final Project - App</title>
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/styles.css') }}">
+    </head>
+    <body>
+        <h2> Twitter Search Application </h2>
+        <div class="parentContainer">
+            <div class="sidenav">
+                <h3>Search Option</h3>
+                <!--<form name="searchOptionsForm" method="get" action="/tweets/search?">-->
+                    <button class="accordion">Tweets</button>
+                    <div class="panel">
+                        <p style="margin-left: 20px;">
+                            <input class="textInput" type="text" name="tweetText" placeholder="Type in string..."/>
+                            <br><br>
+                            Exact <input type="radio" name="tweetSearchMode" value="Exact" checked>
+                            All <input type="radio" name="tweetSearchMode" value="All">
+                            Any <input type="radio" name="tweetSearchMode" value="Any">
+                        </p>
+                    </div>
+
+                    <button class="accordion">People</button>
+                    <div class="panel">
+                        <p style="margin-left: 20px;">
+                            <input class="textInput" type="text" name="inputMatchExact" placeholder="@Person" />
+                            <br><br>
+                            From <input type="radio" name="peopleSearchMode" value="From" checked>
+                            Reply <input type="radio" name="peopleSearchMode" value="InReply">
+                            Mention <input type="radio" name="peopleSearchMode" value="Mention">
+                        </p>
+                    </div>
+
+                    <button class="accordion">Interactions</button>
+                    <div class="panel">
+                        <p>Tweets and other stats filters</p>
+                    </div>
+
+                    <button class="accordion">Language</button>
+                    <div class="panel">
+                        <p>
+                            <!-- Replace with drop down for the language-->
+                            <ul>
+                                <li>English</li>
+                                <li>French</li>
+                            </ul>
+                        </p>
+                    </div>
+
+                    <button class="accordion">Time Frame</button>
+                    <div class="panel">
+                        <p>
+                            <!-- Replace with drop down for the language-->
+                            <ul>
+                                <li>English</li>
+                                <li>French</li>
+                            </ul>
+                        </p>
+                    </div>
+                <!--</form>-->
+            </div>
+
+            <div class="mainBody">
+                <!-- Tab links -->
+                <div class="tab">
+                    <button class="tablinks" onclick="openTab(event, 'Best')">Best</button>
+                    <button class="tablinks" onclick="openTab(event, 'Latest')">Latest</button>
+                    <button class="tablinks" onclick="openTab(event, 'Popular')">Popular</button>
+                    <button class="tablinks" onclick="openTab(event, 'Authoritative')">Authoritative</button>
+                </div>
+                
+                <!-- Tab content -->
+                <div id="Best" class="tabcontent">
+                    <h3>Best Matches</h3>
+                    <p>Return results based on the number of time matching tweets were 
+                    liked and retweeted</p>
+
+                    {% for tweet in tweets %}
+                    <li>
+                        {{ tweet['id'] }} {{ tweet['text'] }}
+                    </li>
+                    {% endfor %}
+                </div>
+                
+                <div id="Latest" class="tabcontent">
+                    <h3>Latest Matches</h3>
+                    <p>Return the latest results first based on search criteria</p>
+                </div>
+                
+                <div id="Popular" class="tabcontent">
+                    <h3>Popular</h3>
+                    <p>Returns matches based on those users with the most followers</p>
+                </div>
+
+                <div id="Authoritative" class="tabcontent">
+                    <h3>Authoritative</h3>
+                    <p>Returns matches based on those authors with the most retweets first</p>
+                </div>
+            </div>
+        </div>
+
+        <!------------------------------ Begin Script ----------------------------------------->
+        <script>
+            var acc = document.getElementsByClassName("accordion");
+            var i;
+
+            for (i = 0; i < acc.length; i++) {
+                acc[i].addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    var panel = this.nextElementSibling;
+                    if (panel.style.display === "block") {
+                        panel.style.display = "none";
+                    } else {
+                        panel.style.display = "block";
+                    }
+                });
+            }
+
+            function openTab(evt, tabName) {
+                // Declare all variables
+                var i, tabcontent, tablinks;
+
+                // Get all elements with class="tabcontent" and hide them
+                tabcontent = document.getElementsByClassName("tabcontent");
+                for (i = 0; i < tabcontent.length; i++) {
+                    tabcontent[i].style.display = "none";
+                }
+
+                // Get all elements with class="tablinks" and remove the class "active"
+                tablinks = document.getElementsByClassName("tablinks");
+                for (i = 0; i < tablinks.length; i++) {
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }
+
+                // Show the current tab, and add an "active" class to the button that opened the tab
+                document.getElementById(tabName).style.display = "block";
+                evt.currentTarget.className += " active";
+            }
+        </script>
+    </body>
+</html>
