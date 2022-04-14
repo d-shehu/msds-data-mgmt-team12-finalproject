@@ -1,6 +1,6 @@
 from flask import Flask, render_template
 
-from lib import mydb
+from utils import mydb
 
 app = Flask(__name__)
 

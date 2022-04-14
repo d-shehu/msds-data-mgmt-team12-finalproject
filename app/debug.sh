@@ -42,7 +42,7 @@ docker run -it --rm --name=final_project_search_app \
         --volume $runtimeDir/input:/data \
         --volume $scriptDir/templates:/app/templates \
         --volume $scriptDir/static:/app/static \
-        --volume $scriptDir/lib:/app/lib \
+        --volume $scriptDir/utils:/app/utils \
         --volume $scriptDir/search_app.py:/app/search_app.py \
         --volume $scriptDir/requirements.txt:/app/requirements.txt \
         --network="msds_data_mgmg_final_project_network" \
