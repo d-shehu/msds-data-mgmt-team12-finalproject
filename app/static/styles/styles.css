@@ -43,7 +43,15 @@
     vertical-align: middle;
 }
 
-.textInput {
+.searchTextInput {
+    width: 220px;
+
+    box-sizing: border-box;
+    /*  make border/padding size be
+            included in the set width  */
+}
+
+.statusTextInput {
     width: 220px;
 
     box-sizing: border-box;
@@ -96,6 +104,5 @@
     border: 1px solid #ccc;
     border-top: none;
     color: black;
-    overflow: hidden;
-    word-wrap: break-word;
+    overflow: scroll;
 }

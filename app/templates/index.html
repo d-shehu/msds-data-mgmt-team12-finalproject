@@ -2,6 +2,7 @@
     <head>
         <title>MSDS - Data Mgmt - Final Project - App</title>
         <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/styles.css') }}">
+        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.css">
     </head>
     <body>
         <h2> Twitter Search Application </h2>
@@ -25,7 +26,7 @@
                         <p style="margin-left: 20px;">
                             <input class="textInput" type="text" name="hashtagText" placeholder="Type in string..." />
                             <br><br>
-                            All <input type="radio" name="hashtagSearchMode" value="All">
+                            All <input type="radio" name="hashtagSearchMode" value="All" checked>
                             Any <input type="radio" name="hashtagSearchMode" value="Any">
                         </p>
                     </div>
@@ -96,16 +97,33 @@
                     <p>Return results based on the number of time matching tweets were 
                     liked and retweeted</p>
 
-                    {% for tweet in tweets %}
-                    <li>
-                        {{ tweet['id'] }} {{ tweet['text'] }}
-                    </li>
-                    {% endfor %}
+                    <p>
+                        {% for tweet in tweets %}
+                        <div> {{ tweet['id'] }} </div>
+                        <div> {{ tweet['text'] }} </div><br>
+                        {% endfor %}
+                    </p>
                 </div>
                 
                 <div id="Latest" class="tabcontent">
                     <h3>Latest Matches</h3>
                     <p>Return the latest results first based on search criteria</p>
+                    <table id="tweet-data" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tweet</th>
+                            </tr>
+                            {% for tweet in tweets %}
+                            <tr>
+                                <td> {{ tweet['id'] }} </td>
+                                <td> {{ tweet['text'] }} </td>
+                            </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
                 
                 <div id="Popular" class="tabcontent">
@@ -117,14 +135,92 @@
                     <h3>Authoritative</h3>
                     <p>Returns matches based on those authors with the most retweets first</p>
                 </div>
+                <br>
+
+                <!-- Data Insertion Control -->
+                <div style="margin: 5px; padding: 5px; border: 1px solid #ccc" ><div>
+                    <H3>Data Insertion Control</H3>
+                    <p>
+                        This allows the user to simulate streaming of data into the application.
+                        Specify the insertion speed in number of records per second and click
+                        "Begin Insert".
+                    </p>
+                    <form id="insertionForm" method="get">
+                        <label for="text">Records per sec.:</label>
+                        <input type="text" id="text" name="insertionSpeed" placeholder="10">
+                        <input id="insertButton" type="button" value="Start" name="insertButton">
+                    </form>
+                    <div style="padding: 0px; border-style: inset; background-color: #b4b2b2; width: 200px">
+                        <div id="insertProgress" style="background-color: #77a77a; width:0%;">0%</div>
+                    </div>
+                    <br>
+                    <div id="log"></div>
+                </div>
             </div>
         </div>
 
         <!------------------------------ Begin Script ----------------------------------------->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous">
+        </script>
+        <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.js"></script>
         <script>
+            // Initialize script globals
             var acc = document.getElementsByClassName("accordion");
-            var i;
+            // Websocket is used to show progress as records are inserted into the DB
+            var socket = io();
+            // Insert button handle
+            var insertButton = document.getElementById("insertButton");
+            var insertProgressBar = document.getElementById("insertProgress")
 
+
+            socket.addEventListener('update', event => {
+                console.log(event)
+                updateProgress(event.progress)
+            });
+
+            socket.addEventListener('stopped', event => {
+                console.log(event)
+                insertButton.value = "Start"
+            });
+
+            socket.on('connect', function () {
+                socket.emit('get_updates');
+            });
+
+            // Handle Websocket updates from server showing progress from processing Tweets
+            const updateProgress = (progress) => {
+                insertProgressBar.innerHTML = `${progress}`;
+                insertProgressBar.style.width = `${progress}`
+
+                insertButton.value = "Stop"
+            };
+
+            let table = new DataTable('#tweet-data', {
+                // options
+            });
+
+            // Handle insert start/stop
+            insertButton.addEventListener('click', async _ => {
+                try {
+                    if(insertButton.value == "Start"){
+                        url = "http://" + window.location.host + "/insert"
+                    }else{
+                        url = "http://" + window.location.host + "/stop"
+                    }
+
+                    const response = await fetch(url, {
+                        method: "get"
+                    });
+                } catch (err) {
+                    console.error(`Error triggering data insert: ${err}`);
+                }
+            });
+
+            // Handle tabbed UI
+            var i;
             for (i = 0; i < acc.length; i++) {
                 acc[i].addEventListener("click", function () {
                     this.classList.toggle("active");
@@ -136,7 +232,8 @@
                     }
                 });
             }
-
+            
+            // Handlers
             function openTab(evt, tabName) {
                 // Declare all variables
                 var i, tabcontent, tablinks;

@@ -3,11 +3,15 @@
 # from the data stream, i.e. a file, and then parses it and inserts
 # it into the appropriate database.
 
+# System
+from ntpath import join
 import os
 import json
 from datetime import datetime
+from time import sleep
 
-import mydb
+# User library imports
+from . import mydb
 
 def fnGetDataDir():
     return os.path.join("/", "data")
@@ -28,14 +32,29 @@ def fnGetRecordFromJSON(sLine):
 def fnGetRecords(filepath, fnProcessRecord, iFrom=None, iTo=None, bVerbose=False, userData=None):
     
     iRecord = 0
+    iPos = 0
 
     # Read JSON sample data with tweats
     try:
         print("Reading from ", filepath)
 
+        fileSize = os.stat(filepath).st_size
+        print("File is of size: ", fileSize)
+
         with open(filepath, "r") as sampleFile:
+
             # Lets get it one line at a time to avoid loading everything into memory
             for sLine in sampleFile:
+                # Check control
+                if ("continue" in userData and not userData["continue"] ):
+                    break
+
+                # Estimate progress. This is not super efficient
+                # so will only call every so often
+                iPos = iPos + len(sLine)
+                if (iRecord % 100 == 1 and "progress" in userData):
+                    userData["progress"] = float(iPos) / fileSize
+
                 # Ignore whitespaces
                 if not sLine.isspace():
                     # Limit to a range
@@ -58,7 +77,10 @@ def fnGetRecords(filepath, fnProcessRecord, iFrom=None, iTo=None, bVerbose=False
                     
                     # Keep track of all non empty lines being processed. Assume correspond to JSON
                     # top-level object
-                    iRecord = iRecord + 1   
+                    iRecord = iRecord + 1 
+
+            # All done without errors?
+            userData["progress"] = 1.0 
     except Exception as e:
         print("Error while reading JSON records from memory", e)
         
@@ -73,10 +95,10 @@ def fnProcessTweets(record, userData):
                                         '%a %b %d %H:%M:%S +0000 %Y'), '%Y-%m-%d %H:%M:%S')
         text = record["text"]
 
-        print("Processing tweet id: ", id)
-        print("Created: ", createdAt)
-        print("Text: ", text)
-        print("\n")
+        #print("Processing tweet id: ", id)
+        #print("Created: ", createdAt)
+        #print("Text: ", text)
+        #print("\n")
 
         tweetCollection = userData["tweetCollection"]
         tweetCollection.insert_one({
@@ -85,30 +107,55 @@ def fnProcessTweets(record, userData):
             "text": text
         })
 
+        # Is rate defined?
+        if("rate" in userData):
+            rate = userData["rate"]
+            sleep(1.0 / rate) # Actual sleep depends on precision of timer
+
+        # Increment progress
+        userData["processed"] = userData["processed"] + 1
+
     except Exception as e:
         print("Error while reading JSON records from memory", e)
 
 
-def main():
-    print("Quick test to verify that the code above is working")
+def fnReadThreaded(readerData):
 
+    try:
+        dbConnection = mydb.fnConnectToMongo()
+        if dbConnection != None:
+            # Check the MongoDB connection by fetching server info
+            serverInfo = dbConnection.server_info()
+            #print (serverInfo)
+
+            # Create the database and collection
+            tweetCollection = mydb.fnCreateTweetDB(dbConnection)
+
+            # Poor man's objected-oriented (i.e. should use class here)
+            readerData["mongoConn"] = dbConnection, 
+            readerData["tweetCollection"] = tweetCollection
+
+            inFilepath = readerData["inFilepath"] # A must
+            
+            # Loop over records in JSON file
+            fnGetRecords(inFilepath, fnProcessTweets, None, None, False, readerData)
+
+            mydb.fnDisconnectFromMongo(dbConnection)
+    except Exception as error:
+        # Need a thread safe way to output errors
+        print("Error while reading/processing tweets: ",error)
+
+def fnGetReaderData():
     sampleDataFilepath = os.path.join(fnGetDataDir(), "corona-out-2")
-    print("Reading from: ", sampleDataFilepath)
+    print("Using file: ", sampleDataFilepath)
 
-    dbConnection = mydb.fnConnectToMongo()
-    if dbConnection != None:
-        # Check the MongoDB connection by fetching server info
-        serverInfo = dbConnection.server_info()
-        print (serverInfo)
+    # Poor man's objected-oriented (i.e. should use class here)
+    userData = {
+        "inFilepath": sampleDataFilepath,
+        "rate": 10, # Careful. There is a limit to how precise this is.
+        "continue": True, # Adding a control variable here so we can cancel
+        "processed": 0, # Records processed
+        "progress": 0.0, # estimated progression. 1.0 == complete
+    }
 
-        # Create the database and collection
-        tweetCollection = mydb.fnCreateTweetDB(dbConnection)
-
-        # Loop over records in JSON file
-        userData = {"mongoConn": dbConnection, "tweetCollection": tweetCollection}
-        fnGetRecords(sampleDataFilepath, fnProcessTweets, 1, 10, False, userData)
-
-        mydb.fnDisconnectFromMongo(dbConnection)
-
-if __name__ == "__main__":
-    main()
+    return (userData)
