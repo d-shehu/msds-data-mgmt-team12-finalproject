@@ -10,6 +10,7 @@ COPY ./static /app/static
 COPY ./templates /app/templates
 COPY ./utils /app/utils
 COPY ./search_app.py /app/search_app.py
+COPY ./test_app.py /app/test_app.py
 
 # install the dependencies and packages in the requirements file
 RUN pip3 install -r /app/requirements.txt

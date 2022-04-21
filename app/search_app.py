@@ -1,13 +1,14 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 import threading
 
 # User library
-from utils import mydb
+from utils import tweet
 from utils import ingest_data
 
 async_mode = None  # "threading", "eventlet" or "gevent"
 
+# TODO: if there's time let's package these in the "create_app" function
 # Some globals. Should be stored in a structure
 app = Flask(__name__)
 socketio = SocketIO(app, async_mode=async_mode)
@@ -18,6 +19,10 @@ sockLock = threading.Lock()
 readerThread = None
 updaterThread = None
 readerData = None
+
+# Everytime we start clear up the data and init the schema
+# fresh start.
+ingest_data.fnInitSchemaData()
 
 # Long-lived (runs as soon as the 1st client connects)
 def fnThreadUpdates():
@@ -48,12 +53,12 @@ def fnRoot():
 
 @app.route("/search")
 def fnSearch():
-    dbConnection = mydb.fnConnectToMongo()
+    dbConnection = tweet.fnConnect()
 
-    lsTweets = mydb.fnGetAllTweets(dbConnection)
+    lsTweets = tweet.fnGetAllTweets(dbConnection)
     print(lsTweets)
 
-    mydb.fnDisconnectFromMongo(dbConnection)
+    tweet.fnDisconnect(dbConnection)
 
     return render_template("index.html", tweets=lsTweets)
 
@@ -66,12 +71,53 @@ def fnInsert():
         # Is thread in progress
         if (readerThread is None):
             try:
-                readerData = ingest_data.fnGetReaderData()
-                readerThread = threading.Thread(target=ingest_data.fnReadThreaded, args=(readerData,))
-                readerThread.start()
+                doStream = False
+                insertDelay = 0
+
+                streamArg=request.args.get("stream")
+                if streamArg is not None and streamArg == "1":
+                    print("Info: Streaming mode enabled")
+                    doStream = True
+                else:
+                    print("Warning: stream argument is not valid: ", streamArg)
+
+                # Only relavent for streaming
+                if doStream:
+                    insertDelayArg=int(request.args.get("insertDelay"))
+                    print("Info: stream delay is: ", insertDelayArg)
+
+                doStream = False
+                sampleArg=request.args.get("sample")
+                if sampleArg is not None:
+                    print("Arguments for insertion are: stream: {0}, delay: {1}, sample: {2}", streamArg, 
+                            insertDelayArg, sampleArg)
+
+                    readerData = ingest_data.fnGetReaderData(sampleArg, insertDelayArg)
+                    readerData["isIngesting"] = True
+                    readerThread = threading.Thread(target=ingest_data.fnReadThreaded, args=(readerData,))
+                    readerThread.start()
+                else:
+                    # TODO: return meaningful error. Need 403 and possibly base.html template
+                    print("Error: please specify a sample file to ingest")
+
             except Exception as error:
                 print("Error while trigger job: ", error)
         
+    return render_template("index.html")
+
+@app.route("/clear")
+def fnClearDB():
+    global readerData
+    # Prevent clearing of DB while data is being inserted
+    with insertLock:
+        print("Reader data is", readerData)
+        okToClear = readerData is not None and not readerData["isIngesting"]
+        if(okToClear):
+            ingest_data.fnClearData(readerData)
+        elif readerData is not None:
+            # TODO: return meaningful error. Need 403 and possibly base.html template
+            print("Error: currently ingesting data. Please wait ...")
+
     return render_template("index.html")
 
 @app.route("/stop")

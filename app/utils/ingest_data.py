@@ -8,13 +8,25 @@ from ntpath import join
 import os
 import json
 from datetime import datetime
-from time import sleep
 
 # User library imports
-from . import mydb
+from . import tweet
+from . import pgdb
+from . import mongodb
 
 def fnGetDataDir():
     return os.path.join("/", "data")
+
+# Some schema and data needs to be pre-set after the app launches
+# This is a wrapper for that
+def fnInitSchemaData():
+    dbConnection = pgdb.fnConnectDB()
+    # Configure Postgres schema
+    pgdb.fnInitSchema(dbConnection)
+    # TODO: ;oad country and language meta data
+    pgdb.fnDisconnect(dbConnection)
+
+    mongodb.fnInitDB()
 
 # Assuming the file has 1 JSON object per line, this function
 # reads the line and returns the corresponding JSON.
@@ -86,76 +98,69 @@ def fnGetRecords(filepath, fnProcessRecord, iFrom=None, iTo=None, bVerbose=False
         
     return iRecord 
 
-def fnProcessTweets(record, userData):
-    try:
-        # Let's get the required fields
-        # ID is given for all tweets and it's always an integer. id_str seems redundant
-        id = int(record["id"])
-        createdAt = datetime.strftime(datetime.strptime(record["created_at"],
-                                        '%a %b %d %H:%M:%S +0000 %Y'), '%Y-%m-%d %H:%M:%S')
-        text = record["text"]
-
-        #print("Processing tweet id: ", id)
-        #print("Created: ", createdAt)
-        #print("Text: ", text)
-        #print("\n")
-
-        tweetCollection = userData["tweetCollection"]
-        tweetCollection.insert_one({
-            "id": id,
-            "createAt": createdAt,
-            "text": text
-        })
-
-        # Is rate defined?
-        if("rate" in userData):
-            rate = userData["rate"]
-            sleep(1.0 / rate) # Actual sleep depends on precision of timer
-
-        # Increment progress
-        userData["processed"] = userData["processed"] + 1
-
-    except Exception as e:
-        print("Error while reading JSON records from memory", e)
-
-
 def fnReadThreaded(readerData):
 
     try:
-        dbConnection = mydb.fnConnectToMongo()
-        if dbConnection != None:
+        mongoConnection = mongodb.fnConnect()
+        pgConnection = pgdb.fnConnectDB()
+
+        if pgConnection is not None and mongoConnection is not None:
             # Check the MongoDB connection by fetching server info
-            serverInfo = dbConnection.server_info()
+            serverInfo = mongoConnection.server_info()
             #print (serverInfo)
 
             # Create the database and collection
-            tweetCollection = mydb.fnCreateTweetDB(dbConnection)
+            tweetCollection, tagCollection = mongodb.fnGetCollections(mongoConnection)
 
             # Poor man's objected-oriented (i.e. should use class here)
-            readerData["mongoConn"] = dbConnection, 
+            readerData["mongoConn"] = mongoConnection, 
+            readerData["pgConn"] = pgConnection
             readerData["tweetCollection"] = tweetCollection
+            readerData["tagCollection"] = tagCollection
 
             inFilepath = readerData["inFilepath"] # A must
             
             # Loop over records in JSON file
-            fnGetRecords(inFilepath, fnProcessTweets, None, None, False, readerData)
+            fnGetRecords(inFilepath, tweet.fnProcessTweets, None, None, False, readerData)
 
-            mydb.fnDisconnectFromMongo(dbConnection)
+        # Clean up connections
+        if mongoConnection is not None:
+            mongodb.fnDisconnect(mongoConnection)
+        if pgConnection is not None:
+            pgdb.fnDisconnect(pgConnection)
+
     except Exception as error:
         # Need a thread safe way to output errors
         print("Error while reading/processing tweets: ",error)
+    
+    readerData["isIngesting"] = False
 
-def fnGetReaderData():
-    sampleDataFilepath = os.path.join(fnGetDataDir(), "corona-out-2")
+def fnClearData(readerData):
+    #TODO: need to clear all databases (Mongo, Postgres and Redis)
+    print("Error: not yet implemented")
+    try:
+        mongoConnection = readerData["mongoConn"] 
+        pgConnection = readerData["pgConn"]
+
+        mongodb.fnCreateTweetDB(mongoConnection, True)
+        pgdb.fnClearData(pgConnection)
+
+    except Exception as error:
+        print("Error while trying to reset databases")
+
+        
+def fnGetReaderData(sampleFilename, insertDelay):
+    sampleDataFilepath = os.path.join(fnGetDataDir(), sampleFilename)
     print("Using file: ", sampleDataFilepath)
 
     # Poor man's objected-oriented (i.e. should use class here)
     userData = {
         "inFilepath": sampleDataFilepath,
-        "rate": 10, # Careful. There is a limit to how precise this is.
+        "delay": insertDelay, # Milliseconds. Careful. There is a limit to how precise sys clock is.
         "continue": True, # Adding a control variable here so we can cancel
         "processed": 0, # Records processed
         "progress": 0.0, # estimated progression. 1.0 == complete
+        "isIngesting": False
     }
 
     return (userData)

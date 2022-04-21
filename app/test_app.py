@@ -1,17 +1,37 @@
 import threading
+from time import sleep
 
-import utils.ingest_data
+from utils import ingest_data
 
 def main():
     print("Insert records into databases via CLI!")
 
-    readerData = fnGetReaderData()
+    # Start with a clean slate and do this at the start of the app
+    ingest_data.fnInitSchemaData()
+
+    # Run just the ingestion logic with the sample data and some parameters
+    print("Enter sample filename to ingest (corona-out-2, corona-out-3):")
+    sampleFilename = input()
+    if(sampleFilename == ""):
+        sampleFilename="corona-out-2"
+    print("Insertion delay (milliseconds):")
+    insertionDelay = input()
+    if(insertionDelay == ""):
+        insertionDelay=1
+    else:
+        insertionDelay=int(insertionDelay)
+
+    print("Processing file ", sampleFilename, " with insertion delay ", insertionDelay)
+    readerData = ingest_data.fnGetReaderData(sampleFilename, insertionDelay)
 
     print("Starting thread to read/process tweets...")
-
     try:
-        threadReader = threading.Thread(target=fnReadThreaded, args=(readerData,))
+        threadReader = threading.Thread(target=ingest_data.fnReadThreaded, args=(readerData,))
         threadReader.start()
+
+        # Wait for thread to start doing some work
+        while(readerData["processed"] == 0):
+            sleep(1)
 
         cmd = ""
         while(cmd != "stop" and readerData["progress"] < 1.0):

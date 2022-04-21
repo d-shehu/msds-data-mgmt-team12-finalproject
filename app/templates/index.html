@@ -74,8 +74,8 @@
                         <p>
                             <!-- Replace with drop down for the language-->
                         <ul>
-                            <li>Begin</li>
-                            <li>Start</li>
+                            <li>Begin Date</li>
+                            <li>End Date</li>
                         </ul>
                         </p>
                     </div>
@@ -143,12 +143,24 @@
                     <p>
                         This allows the user to simulate streaming of data into the application.
                         Specify the insertion speed in number of records per second and click
-                        "Begin Insert".
+                        "Stream". Insertion delay can vary from 50 to 60000 milliseconds (60 seconds).
+                        Effectively a rate of 20 records / second to 1 every minute. Keep in mind that 
+                        system timer may not be precise enough to support single digit sleep.  
+                        
+                        User can also insert all the data at once in "batch" mode.
+                        Please note "batch" mode doesn't actually insert in batches it just
+                        eliminates the delay between records.
                     </p>
                     <form id="insertionForm" method="get">
-                        <label for="text">Records per sec.:</label>
-                        <input type="text" id="text" name="insertionSpeed" placeholder="10">
-                        <input id="insertButton" type="button" value="Start" name="insertButton">
+                        <label for="text">Delay (millis):</label>
+                        <input type="number" min="50" max="60000" id="insertionDelay" name="insertionDelay" placeholder="10" value="10">
+                        <input id="insertButton" type="button" value="Start" name="insertButton"> 
+                        <input id="clearButton" type="button" value="Clear" name="clearButton">
+                        <br> <br>
+                        Stream <input id="streamMode" type="radio" name="ingestionMode" value="stream" checked>
+                        Batch <input id="batchMode" type="radio" name="ingestionMode" value="batch">
+                        Corona-Out-2 <input type="radio" name="dataSampleChoice" id="sampleCorona2" checked>
+                        Corona-Out-3 <input type="radio" name="dataSampleChoice" id="sampleCorona3">
                     </form>
                     <div style="padding: 0px; border-style: inset; background-color: #b4b2b2; width: 200px">
                         <div id="insertProgress" style="background-color: #77a77a; width:0%;">0%</div>
@@ -172,8 +184,12 @@
             // Websocket is used to show progress as records are inserted into the DB
             var socket = io();
             // Insert button handle
+            var insertionDelayButton = document.getElementById("insertionDelay")
+            var streamModeButton = document.getElementById("streamMode")
             var insertButton = document.getElementById("insertButton");
+            var clearButton = document.getElementById("clearButton")
             var insertProgressBar = document.getElementById("insertProgress")
+            var sampleCorona2 = document.getElementById("sampleCorona2")
 
 
             socket.addEventListener('update', event => {
@@ -183,7 +199,7 @@
 
             socket.addEventListener('stopped', event => {
                 console.log(event)
-                insertButton.value = "Start"
+                insertButton.value = "Insert"
             });
 
             socket.on('connect', function () {
@@ -202,11 +218,29 @@
                 // options
             });
 
-            // Handle insert start/stop
+            // Handle insert start/stop and clear
             insertButton.addEventListener('click', async _ => {
                 try {
                     if(insertButton.value == "Start"){
-                        url = "http://" + window.location.host + "/insert"
+                        // Mode - only 2 options possible.
+                        doStream = 0
+                        if(streamModeButton.checked){
+                            doStream = 1
+                        }
+                        // Only 2 samples available
+                        if(sampleCorona2.checked){
+                            sampleData="corona-out-2"
+                        }
+                        else{
+                            sampleData="corona-out-3"
+                        }
+                        // Streaming delay (if streaming)
+                        insertDelay=insertionDelayButton.value;
+                        // Insert with streaming mode or not
+                        url = "http://" + window.location.host + "/insert?" +
+                                "stream=" + doStream + "&insertDelay=" + insertDelay +
+                                "&sample=" + sampleData
+                        console.log(url)
                     }else{
                         url = "http://" + window.location.host + "/stop"
                     }
@@ -218,6 +252,19 @@
                     console.error(`Error triggering data insert: ${err}`);
                 }
             });
+
+            clearButton.addEventListener('click', async _ => {
+                    try {
+                        // Insert with streaming mode
+                        url = "http://" + window.location.host + "/clear"
+                        
+                        const response = await fetch(url, {
+                            method: "get"
+                        });
+                    } catch (err) {
+                        console.error(`Error triggering data insert: ${err}`);
+                    }
+                });
 
             // Handle tabbed UI
             var i;

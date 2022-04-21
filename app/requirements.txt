@@ -3,10 +3,13 @@
 # associated Jupyter notebook. 
 
 ###### Requirements without Version Specifiers ######
+Flask
+Flask-SocketIO # Websockets
 pandas 
 pymongo 
 psycopg 
 redis
-Flask
+requests
+uuid
 
 ###### Requirements with Version Specifiers ######

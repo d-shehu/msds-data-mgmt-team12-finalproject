@@ -39,11 +39,15 @@ docker run -it --rm --name=final_project_search_app \
         --env MONGO_DB_HOSTNAME=t12_final_project_mongodb \
         --env MONGO_DB_USERNAME=t12 \
         --env MONGO_DB_PASSWORD=$T12_FINAL_PROJECT_DB_PASS \
+        --env PG_DB_HOSTNAME=t12_final_project_pgdb \
+        --env PG_DB_USERNAME=postgres \
+        --env PG_DB_PASSWORD=$T12_FINAL_PROJECT_DB_PASS \
         --volume $runtimeDir/input:/data \
         --volume $scriptDir/templates:/app/templates \
         --volume $scriptDir/static:/app/static \
         --volume $scriptDir/utils:/app/utils \
         --volume $scriptDir/search_app.py:/app/search_app.py \
+        --volume $scriptDir/test_app.py:/app/test_app.py \
         --volume $scriptDir/requirements.txt:/app/requirements.txt \
         --network="msds_data_mgmg_final_project_network" \
         --publish 25000:8080 \
