@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, emit
 import threading
 
 # User library
+from utils import mongodb # TODO: hide this from top level code
 from utils import tweet
 from utils import ingest_data
 
@@ -51,14 +52,31 @@ def fnThreadUpdates():
 def fnRoot():
     return render_template("index.html")
 
+def fnGetTextSearchArgs(args):
+    textSearch=request.args.get("search_text")
+    searchMode=request.args.get("search_mode")
+
+    if textSearch is not None:
+        print("Info: Streaming mode enabled")
+        doStream = True
+    else:
+        print("Warning: stream argument is not valid: ", textSearch)
+
 @app.route("/search")
 def fnSearch():
-    dbConnection = tweet.fnConnect()
+    
+    try:
+        fnGetTextSearchArgs(request.args)
 
-    lsTweets = tweet.fnGetAllTweets(dbConnection)
-    print(lsTweets)
+        dbConnection = mongodb.fnConnect()
 
-    tweet.fnDisconnect(dbConnection)
+        print("Searching tweets ...")
+        lsTweets = tweet.fnGetAll(dbConnection)
+        print(lsTweets)
+
+        mongodb.fnDisconnect(dbConnection)
+    except Exception as error:
+        print("Error: could not search tweets")
 
     return render_template("index.html", tweets=lsTweets)
 

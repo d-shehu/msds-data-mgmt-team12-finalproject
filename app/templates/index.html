@@ -42,11 +42,6 @@
                         </p>
                     </div>
 
-                    <button class="accordion">Interactions</button>
-                    <div class="panel">
-                        <p>Tweets and other stats filters</p>
-                    </div>
-
                     <button class="accordion">Language</button>
                     <div class="panel">
                         <p>
@@ -74,8 +69,8 @@
                         <p>
                             <!-- Replace with drop down for the language-->
                         <ul>
-                            <li>Begin Date</li>
-                            <li>End Date</li>
+                            Start Date: <input id="startDate" type="date"><br>
+                            End Date: <input id="endDate" type="date">
                         </ul>
                         </p>
                     </div>
@@ -94,29 +89,46 @@
                 <!-- Tab content -->
                 <div id="Best" class="tabcontent">
                     <h3>Best Matches</h3>
-                    <p>Return results based on the number of time matching tweets were 
-                    liked and retweeted</p>
-
-                    <p>
-                        {% for tweet in tweets %}
-                        <div> {{ tweet['id'] }} </div>
-                        <div> {{ tweet['text'] }} </div><br>
-                        {% endfor %}
-                    </p>
-                </div>
-                
-                <div id="Latest" class="tabcontent">
-                    <h3>Latest Matches</h3>
-                    <p>Return the latest results first based on search criteria</p>
-                    <table id="tweet-data" class="table table-striped">
+                    Return results based on the number of time matching tweets were 
+                    liked and retweeted
+                    <table id="tweet-data-best" class="table table-striped">
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Created At</th>
+                                <th>Creator ID</th>
                                 <th>Tweet</th>
                             </tr>
                             {% for tweet in tweets %}
                             <tr>
-                                <td> {{ tweet['id'] }} </td>
+                                <td> {{ tweet['tweet_id'] }} </td>
+                                <td> {{ tweet['created_at'] }} </td>
+                                <td> {{ tweet['creator_id'] }} </td>
+                                <td> {{ tweet['text'] }} </td>
+                            </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="Latest" class="tabcontent">
+                    <h3>Latest Matches</h3>
+                    Return the latest results first based on search criteria
+                    <table id="tweet-data-latest" class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Created At</th>
+                                <th>Creator ID</th>
+                                <th>Tweet</th>
+                            </tr>
+                            {% for tweet in tweets %}
+                            <tr>
+                                <td> {{ tweet['tweet_id'] }} </td>
+                                <td> {{ tweet['created_at'] }} </td>
+                                <td> {{ tweet['creator_id'] }} </td>
                                 <td> {{ tweet['text'] }} </td>
                             </tr>
                             {% endfor %}
@@ -138,9 +150,9 @@
                 <br>
 
                 <!-- Data Insertion Control -->
-                <div style="margin: 5px; padding: 5px; border: 1px solid #ccc" ><div>
+               <div class="dataInsertionControl" ><div>
                     <H3>Data Insertion Control</H3>
-                    <p>
+                    <p style="width: 600px; word-break: break-all; word-wrap: break-word;">
                         This allows the user to simulate streaming of data into the application.
                         Specify the insertion speed in number of records per second and click
                         "Stream". Insertion delay can vary from 50 to 60000 milliseconds (60 seconds).
@@ -151,6 +163,7 @@
                         Please note "batch" mode doesn't actually insert in batches it just
                         eliminates the delay between records.
                     </p>
+                    
                     <form id="insertionForm" method="get">
                         <label for="text">Delay (millis):</label>
                         <input type="number" min="50" max="60000" id="insertionDelay" name="insertionDelay" placeholder="10" value="10">
@@ -191,6 +204,12 @@
             var insertProgressBar = document.getElementById("insertProgress")
             var sampleCorona2 = document.getElementById("sampleCorona2")
 
+            // Initialize date controls
+            var starDate = new Date();
+            starDate.setDate(starDate.getDate() - 30);
+            document.getElementById('startDate').valueAsDate = starDate;
+            document.getElementById('endDate').valueAsDate = new Date();
+
 
             socket.addEventListener('update', event => {
                 console.log(event)
@@ -214,7 +233,11 @@
                 insertButton.value = "Stop"
             };
 
-            let table = new DataTable('#tweet-data', {
+            let tableBestTweets = new DataTable('#tweet-data-best', {
+                // options
+            });
+
+            let tableLatestTweets = new DataTable('#tweet-data-latest', {
                 // options
             });
 

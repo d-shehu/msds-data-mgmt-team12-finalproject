@@ -3,6 +3,7 @@ from datetime import datetime
 
 from time import sleep
 
+from . import mongodb
 from . import place
 from . import user
 
@@ -32,7 +33,7 @@ def fnProcessTweets(record, userData):
 
         retweetID = None
         if "retweet_status" in record:
-            retweetID = fnProcessRetweet(record["retweet_status"])
+            retweetID = fnProcessRetweet(record["retweeted_status"])
 
         quotedStatusID = None
         if "quote_status_id" in record:
@@ -142,10 +143,9 @@ def fnGetAll(dbConnection):
     lsTweets = []
 
     try:
-        tweetDB = dbConnection[fnGetTweetDBName()]
-        sTweetCollection = fnGetTweetCollection()
-
-        lsTweets = list(tweetDB[sTweetCollection].find())
+        print("Get tweets collection")
+        tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
+        lsTweets = list(tweetCollection.find().limit(10))
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)
 

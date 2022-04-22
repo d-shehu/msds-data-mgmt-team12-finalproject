@@ -104,5 +104,14 @@
     border: 1px solid #ccc;
     border-top: none;
     color: black;
+    overflow: scroll
+}
+
+.dataInsertionControl {
+    margin: 5px;
+    width: 100% !important;
+    padding: 5px;
+    border: 1px solid #ccc;
+    color: black;
     overflow: scroll;
 }
