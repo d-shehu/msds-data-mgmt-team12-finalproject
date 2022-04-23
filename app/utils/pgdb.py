@@ -1,7 +1,7 @@
 import os
 import psycopg
 
-def fnConnectDB():
+def fnConnect():
     dbConnection = None
     try:
         sConnectionString = "host='{0}' dbname='{1}' user='{2}' password='{3}'".format(
@@ -49,7 +49,7 @@ def fnInitSchema(dbConnection):
                 # Create the Language table
                 curs.execute("""DROP TABLE IF EXISTS language CASCADE;
                                 CREATE TABLE language(
-                                    id INTEGER PRIMARY KEY,
+                                    code CHAR(2) PRIMARY KEY,
                                     language VARCHAR(64) NOT NULL UNIQUE
                                 );
                             """)
@@ -112,30 +112,32 @@ def fnClearData(dbConnection):
         print("DB connection is not valid")
 
 def fnGetUserFromID(dbConnection, id):
+    outUser=None
+        
     try:
         with dbConnection.cursor() as curs:
             curs.execute("SELECT * FROM user_ WHERE id={0}".format(id))
 
-            # Construct dict obj for user. There can only be 1
-            outUser=None
+            # Construct dict obj for user. There can only be 1 as it's the PK
             userRec = curs.fetchone()
             if(userRec is not None):
                 outUser = {
                     "id":               id,
                     # Psycopg does not support fetching by column name
                     # So take care if changing columns/order in schema
-                    "screen_name":      userRec[0],
-                    "location":         userRec[1],
-                    "follower_count":   userRec[2],
-                    "friends_count":    userRec[3],
-                    "listed_count":     userRec[4],
-                    "created_at":       userRec[5],
-                    "lang_code":        userRec[6]
+                    "screen_name":      userRec[1],
+                    "location":         userRec[2],
+                    "follower_count":   userRec[3],
+                    "friends_count":    userRec[4],
+                    "listed_count":     userRec[5],
+                    "created_at":       userRec[6],
+                    "lang_code":        userRec[7]
                 }
-        
-            return outUser
+
     except Exception as e:
         print("Info: user with id not found or field was missing: ", id)
+    
+    return outUser
 
 def fnInsertUser(dbConnection, id, screenName, location, followerCount, friendsCount, 
                     listedCount, createdAt, langCode):
@@ -155,3 +157,59 @@ def fnInsertUser(dbConnection, id, screenName, location, followerCount, friendsC
 
     except Exception as e:
         print("Error while trying to insert user: ", e)
+
+def fnFindLanguage(dbConnection, langCode):
+
+    outLanguage=None
+
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT * FROM language WHERE code='{0}'".format(langCode))
+
+            # Construct dict obj for lang. There can only be 1 as it's the PK
+            langRec = curs.fetchone()
+            if(langRec is not None):
+                outLanguage = {
+                    "code":     langCode,  
+                    "language": langRec[1]
+                }
+
+    except Exception as e:
+        print("Info: language with code not found or other issue: ", langCode)
+
+    return outLanguage
+
+def fnInsertLanguage(dbConnection, langCode, language):
+
+    try:
+        dbLanguage = fnFindLanguage(dbConnection, langCode)
+        if dbLanguage is None:
+            with dbConnection.cursor() as curs:
+                sQuery = """INSERT INTO language (code, language)
+                            VALUES ('{0}', '{1}')
+                        """.format(langCode, language)
+                
+                curs.execute(sQuery)
+
+    except Exception as e:
+        print("Error while trying to insert language '", langCode, "': ", e)
+
+def fnGetAllLanguages(dbConnection):
+    lsLanguages=[]
+
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT * FROM language ORDER BY language")
+
+            # Grab them all
+            langRecs = curs.fetchall()
+            for langRec in langRecs:
+                lsLanguages.append({
+                    "code":     langRec[0],  
+                    "language": langRec[1]
+                })
+
+    except Exception as e:
+        print("Info: error while fetching languages from the database")
+
+    return lsLanguages

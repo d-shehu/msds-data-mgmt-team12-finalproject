@@ -17,7 +17,7 @@ class Redis:
         del self.data[self.db][key]
         return True
 
-def fnConnectDB():
+def fnConnect():
     try:
         dbConnection = redis.StrictRedis(
             host=os.getenv('PG_REDIS_HOSTNAME'), 
@@ -28,6 +28,9 @@ def fnConnectDB():
         print("Error: while trying to connect to redis")
     
     return dbConnection
+
+def fnInsertKV(keyName, value):
+    return 0
 
 # Lookup tables
 

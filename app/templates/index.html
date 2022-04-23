@@ -46,7 +46,7 @@
                     <div class="panel">
                         <p style="margin-left: 20px; text-align: left;">
                             <!-- Replace with dynamically created drop down for the language-->
-                            <select name="language" id="language">
+                            <select name="searchLanguage" id="searchLanguage">
                                 <option value="english">English</option>
                                 <option value="french">French</option>
                             </select>
@@ -68,8 +68,8 @@
                     <div class="panel">
                         <p style="margin-left: 20px;">
                             <!-- Replace with drop down for the language-->
-                            Start Date: <input id="startDate" type="date"><br>
-                            End Date: <input id="endDate" type="date"><br>
+                            Start Date: <input id="searchStartDate" name="searchStartDate" type="date"><br>
+                            End Date: <input id="searchEndDate" name="searchEndDate" type="date"><br>
                             Enabled: <input type="checkbox" id="searchTimeFrame" name="searchTimeFrame">
                         </p>
                     </div>
@@ -110,17 +110,9 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Created At</th>
-                                <th>Creator ID</th>
+                                <th>Creator</th>
                                 <th>Tweet</th>
                             </tr>
-                            <!--{% for tweet in tweets %}
-                            <tr>
-                                <td> {{ tweet['tweet_id'] }} </td>
-                                <td> {{ tweet['created_at'] }} </td>
-                                <td> {{ tweet['creator_id'] }} </td>
-                                <td> {{ tweet['text'] }} </td>
-                            </tr>
-                            {% endfor %}-->
                         </thead>
                         <tbody>
                         </tbody>
@@ -135,17 +127,9 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Created At</th>
-                                <th>Creator ID</th>
+                                <th>Creator</th>
                                 <th>Tweet</th>
                             </tr>
-                            <!--{% for tweet in tweets %}
-                            <tr>
-                                <td> {{ tweet['tweet_id'] }} </td>
-                                <td> {{ tweet['created_at'] }} </td>
-                                <td> {{ tweet['creator_id'] }} </td>
-                                <td> {{ tweet['text'] }} </td>
-                            </tr>
-                            {% endfor %}-->
                         </thead>
                         <tbody>
                         </tbody>
@@ -221,6 +205,10 @@
             var tweetTextSearchModeExact = document.getElementById("tweetTextSearchModeExact")
             var tweetTextSearchModeAll = document.getElementById("tweetTextSearchModeAll")
             var maxResultsInput = document.getElementById("maxResults")
+            var searchStartDateInput = document.getElementById("searchStartDate")
+            var searchEndDateInput = document.getElementById("searchEndDate")
+            var searchTimeFrameCheckbox = document.getElementById("searchTimeFrame")
+            var searchLanguageDropdown = document.getElementById('searchLanguage')
 
             // Insert button handle
             var insertionDelayButton = document.getElementById("insertionDelay")
@@ -231,10 +219,10 @@
             var sampleCorona2 = document.getElementById("sampleCorona2")
 
             // Initialize date controls
-            var starDate = new Date();
-            starDate.setDate(starDate.getDate() - 30);
-            document.getElementById('startDate').valueAsDate = starDate;
-            document.getElementById('endDate').valueAsDate = new Date();
+            var startDate = new Date();
+            startDate.setDate(startDate.getDate() - 30);
+            document.getElementById('searchStartDate').valueAsDate = startDate;
+            document.getElementById('searchEndDate').valueAsDate = new Date();
 
             // Handle Websocket updates from server showing progress from processing Tweets
             socket.addEventListener('update', event => {
@@ -258,7 +246,44 @@
                 insertButton.value = "Stop"
             };
 
-            // Table control functions
+            // Search control initialization
+            document.getElementById('searchLanguage').onclick = function () {
+                console.log("Clicked on language...")
+
+                try {
+                    // Get languages from data
+                    url = "http://" + window.location.host + "/languages";
+                    // Replace ./data.json with your JSON feed
+                    fetch(url).then((response) => {
+                        return response.json()
+                    })
+                    .then((data) => {
+                        // Clear menu
+                        while (searchLanguageDropdown.firstChild) {
+                            searchLanguageDropdown.removeChild(searchLanguageDropdown.firstChild);
+                        }
+                        // Add default option
+                        var option = document.createElement("option");
+                        option.value = "NA"
+                        option.text = "ANY"
+                        searchLanguageDropdown.appendChild(option)
+
+                        for (langRec of data.languages) {
+                            var option = document.createElement("option");
+                            option.value = langRec.code
+                            option.text = langRec.language
+                            searchLanguageDropdown.appendChild(option)
+                        }
+                    })
+                    .catch((error) => {
+                        console.log("Unexpected error: " + error)
+                    })                    
+                } catch (err) {
+                    console.error(`Error while loading language menu: ${err}`);
+                }
+            }
+
+            // Search control functions
             function fnConstructSearchFilter(){
                 url = "/search?maxResults=" + maxResultsInput.value
                 // Text search?
@@ -277,6 +302,14 @@
                     }
                 }
                 // Date Range
+                if(searchTimeFrameCheckbox.checked){
+                    url = url + "&startDate=" + searchStartDateInput.value
+                    url = url + "&endDate=" + searchEndDateInput.value
+                }
+                // Language
+                if(searchLanguageDropdown.value != "NA"){
+                    url = url + "&searchLang=" + searchLanguageDropdown.value
+                }
 
                 console.log(url)
 
@@ -295,7 +328,7 @@
                 columns: [
                     { data: "tweet_id" },
                     { data: "created_at" },
-                    { data: "creator_id" },
+                    { data: "creator_screen_name" },
                     { data: "text" }
                 ]
             });
@@ -311,7 +344,7 @@
                 columns: [
                     { data: "tweet_id" },
                     { data: "created_at" },
-                    { data: "creator_id" },
+                    { data: "creator_screen_name" },
                     { data: "text" }
                 ]
             });
@@ -382,7 +415,7 @@
                 });
             }
             
-            // Handlers
+            // Tab control handlers
             function openTab(evt, tabName) {
                 // Declare all variables
                 var i, tabcontent, tablinks;

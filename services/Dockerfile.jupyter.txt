@@ -9,4 +9,4 @@ USER ${NB_UID}
 
 # Install some packages for the data store Mongo, Postgres and Redis
 # Postgres uses the psycopg (v3) from the conda channel
-RUN conda install -y -c conda-forge pandas pymongo psycopg redis-py
+RUN conda install -y -c conda-forge pandas pycountry pymongo psycopg redis-py

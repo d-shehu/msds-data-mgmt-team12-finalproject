@@ -4,7 +4,7 @@ from datetime import datetime
 from time import sleep
 
 from . import mongodb
-from . import place
+from . import meta
 from . import user
 
 # Since we're not given a retweet ID let's process the status and grab it there.
@@ -46,6 +46,10 @@ def fnProcessTweets(record, userData):
         # Grab the creator
         creatorID = user.fnProcessUser(record["user"], userData)
 
+        # Language code is 1:1 (not sparse) it seems
+        langCode = record["lang"]
+        meta.fnInsertLanguage(langCode, userData)
+
         tweetCollection = userData["tweetCollection"]
         tweetCollection.insert_one({
             "tweet_id":             record["id"],
@@ -65,7 +69,9 @@ def fnProcessTweets(record, userData):
             "retweet_count":        record["retweet_count"],
             "favorite_count":       record["favorite_count"],
             # Tags
-            "tags":                 lsTagIDs    
+            "tags":                 lsTagIDs,
+            # Other
+            "lang_code":            langCode   
         })
 
         # Is rate defined?
@@ -147,13 +153,26 @@ def fnGetFiltered(dbConnection, searchArgs):
 
         print("Get tweets collection")
         tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
+
+        mongoSearchCriteria = {}
         
+        # Search criteria includes text
         if "searchText" in searchArgs:
             print("Info: Mongo Search Filter is ", searchArgs["searchText"])
-            lsTweets = tweetCollection.find({ "$text": { "$search": searchArgs["searchText"] } }).limit(maxResults)
-        else:
-            print("Get all tweets")
-            lsTweets = tweetCollection.find().limit(maxResults)
+            mongoSearchCriteria["$text"] = { "$search": searchArgs["searchText"] }
+        # Modify search criteria to include dates?
+        if "startDate" in searchArgs and "endDate" in searchArgs:
+            print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
+            print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
+            startDatetime = datetime.strptime(searchArgs["startDate"], "%Y-%m-%d")
+            endDatetime = datetime.strptime(searchArgs["endDate"], "%Y-%m-%d")
+            mongoSearchCriteria["created_at"] = {'$lt': searchArgs["endDate"], '$gte': searchArgs["startDate"]}
+        # Search criteria includes language
+        if "searchLang" in searchArgs:
+            mongoSearchCriteria["lang_code"] = {'$eq': searchArgs["searchLang"]}
+
+        print("Mongo search criteria: ", mongoSearchCriteria)
+        lsTweets = list(tweetCollection.find(mongoSearchCriteria).limit(maxResults))
 
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)

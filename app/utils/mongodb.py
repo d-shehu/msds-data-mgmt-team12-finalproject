@@ -1,7 +1,7 @@
 
 from dataclasses import replace
 import os
-from pymongo import MongoClient
+import pymongo
 
 from . import utils
 
@@ -10,7 +10,7 @@ def fnConnect():
     dbConnection = None
     try:
         # Connects to the default port for Mongo within the internal network
-        dbConnection = MongoClient( host=os.getenv('MONGO_DB_HOSTNAME'),
+        dbConnection = pymongo.MongoClient( host=os.getenv('MONGO_DB_HOSTNAME'),
                                     username=os.getenv('MONGO_DB_USERNAME'), 
                                     password=os.getenv('MONGO_DB_PASSWORD'))
 
@@ -45,6 +45,9 @@ def fnInitDB():
         tweetDB[fnGetTweetCollection()].create_index("creator_id")
         tweetDB[fnGetTweetCollection()].create_index("tags")
         tweetDB[fnGetTweetCollection()].create_index([('text', 'text')])
+
+        # Create index in descending order as results sorted from most recent
+        tweetDB[fnGetTweetCollection()].create_index([('created_at', pymongo.DESCENDING)])
         
         fnDisconnect(dbConnection)
     except Exception as error:

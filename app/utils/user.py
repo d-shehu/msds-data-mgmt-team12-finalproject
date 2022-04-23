@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from . import place
+from . import meta
 from . import pgdb
 
 # This function inserts records one at a time as with Mongo
@@ -36,3 +36,15 @@ def fnProcessUser(record, userData):
     
     # Must return an id
     return id
+
+def fnGetScreenNameFromID(dbConnection, id):
+
+    screenName = ""
+
+    try:
+        user = pgdb.fnGetUserFromID(dbConnection, id)
+        screenName = user["screen_name"]
+    except Exception as e:
+        print("Error while fetching screenname from id", id)
+
+    return screenName

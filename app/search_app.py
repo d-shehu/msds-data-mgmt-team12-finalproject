@@ -6,9 +6,12 @@ import json
 import threading
 
 # User library
+from utils import meta
+from utils import pgdb
 from utils import mongodb # TODO: hide this from top level code
 from utils import tweet
 from utils import ingest_data
+from utils import user
 from utils import utils
 
 async_mode = None  # "threading", "eventlet" or "gevent"
@@ -60,13 +63,16 @@ def fnGetTextSearchArgs(args):
     maxResults=int(request.args.get("maxResults"))
     searchText=request.args.get("searchText")
     sSearchMode=request.args.get("searchMode")
+    searchStartDate=request.args.get("startDate")
+    searchEndDate=request.args.get("endDate")
+    searchLanguage=request.args.get("searchLang")
 
     # No search parameters defined
     searchArgs = {}
 
     searchArgs["maxResults"] = maxResults
 
-    # User may not have specified search
+    # User may not have specified search text
     if searchText is not None and sSearchMode is not None:
         searchMode = utils.fnGetSearchMode(sSearchMode)
         searchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
@@ -74,6 +80,16 @@ def fnGetTextSearchArgs(args):
         print("Info: Searching for text {0} using mode {1}".format(searchTextModified, searchMode))
         searchArgs["searchText"] = searchTextModified
         searchArgs["searchMode"] = sSearchMode
+    
+    # Filter on this date range if one is provided
+    if searchStartDate is not None and searchEndDate is not None:
+        searchArgs["startDate"] = searchStartDate
+        searchArgs["endDate"] = searchEndDate
+
+    # Filter on language if one has been provided
+    if searchLanguage is not None:
+        print("Info: searching with lang code:", searchLanguage)
+        searchArgs["searchLang"] = searchLanguage
 
     return searchArgs
 
@@ -84,16 +100,29 @@ def fnSearch():
     try:
         searchArgs = fnGetTextSearchArgs(request.args)
 
-        dbConnection = mongodb.fnConnect()
+        mongoConnection = mongodb.fnConnect()
+        pgConnection = pgdb.fnConnect()
 
         print("Searching tweets ...")
-        lsTweets = tweet.fnGetFiltered(dbConnection, searchArgs)
+        lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)
+
+        # Replace user ID with screen name
+        for aTweet in lsTweets:
+            screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
+            aTweet["creator_screen_name"] = screen_name
+
+        print(lsTweets)
 
         ret = {"data": json.loads(json_util.dumps(lsTweets)) }
 
-        mongodb.fnDisconnect(dbConnection)
+        if(mongoConnection is not None):
+            mongodb.fnDisconnect(mongoConnection)
+
+        if(pgConnection is not None):
+            pgdb.fnDisconnect(pgConnection)
+
     except Exception as error:
-        print("Error: could not search tweets", error)
+        print("Error: could not search tweets:", error)
 
     return ret #render_template("index.html", tweets=lsTweets)
 
@@ -172,6 +201,12 @@ def fnStop():
                 print("Error while stopping job: ", error)
     # Send stop update
     socketio.emit('stopped')
+
+@app.route("/languages")
+def fnGetLanguages():
+    lsLangs = meta.fnGetAllLanguages()
+    print("Get languages", lsLangs)
+    return {"languages": lsLangs}
 
 @socketio.on('get_updates')
 def fnGetUpdates():

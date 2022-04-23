@@ -20,7 +20,7 @@ def fnGetDataDir():
 # Some schema and data needs to be pre-set after the app launches
 # This is a wrapper for that
 def fnInitSchemaData():
-    dbConnection = pgdb.fnConnectDB()
+    dbConnection = pgdb.fnConnect()
     # Configure Postgres schema
     pgdb.fnInitSchema(dbConnection)
     # TODO: ;oad country and language meta data
@@ -102,7 +102,7 @@ def fnReadThreaded(readerData):
 
     try:
         mongoConnection = mongodb.fnConnect()
-        pgConnection = pgdb.fnConnectDB()
+        pgConnection = pgdb.fnConnect()
 
         if pgConnection is not None and mongoConnection is not None:
             # Check the MongoDB connection by fetching server info
