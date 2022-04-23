@@ -44,23 +44,23 @@
 
                     <button class="accordion">Language</button>
                     <div class="panel">
-                        <p>
-                            <!-- Replace with drop down for the language-->
-                            <ul>
-                                <li>English</li>
-                                <li>French</li>
-                            </ul>
+                        <p style="margin-left: 20px; text-align: left;">
+                            <!-- Replace with dynamically created drop down for the language-->
+                            <select name="language" id="language">
+                                <option value="english">English</option>
+                                <option value="french">French</option>
+                            </select>
                         </p>
                     </div>
 
                     <button class="accordion">Country</button>
                     <div class="panel">
-                        <p>
+                        <p style="margin-left: 20px; text-align: left;">
                             <!-- Replace with drop down for the language-->
-                            <ul>
-                                <li>United States</li>
-                                <li>India</li>
-                            </ul>
+                            <select name="country" id="country">
+                                <option value="united_states">United States</option>
+                                <option value="india">India</option>
+                            </select>
                         </p>
                     </div>
 
@@ -84,6 +84,7 @@
                     <button class="tablinks" onclick="openTab(event, 'Latest')">Latest</button>
                     <button class="tablinks" onclick="openTab(event, 'Popular')">Popular</button>
                     <button class="tablinks" onclick="openTab(event, 'Authoritative')">Authoritative</button>
+                    <button class="tablinks" onclick="openTab(event, 'Insert')">Insert Data</button>
                 </div>
                 
                 <!-- Tab content -->
@@ -99,14 +100,14 @@
                                 <th>Creator ID</th>
                                 <th>Tweet</th>
                             </tr>
-                            {% for tweet in tweets %}
+                            <!--{% for tweet in tweets %}
                             <tr>
                                 <td> {{ tweet['tweet_id'] }} </td>
                                 <td> {{ tweet['created_at'] }} </td>
                                 <td> {{ tweet['creator_id'] }} </td>
                                 <td> {{ tweet['text'] }} </td>
                             </tr>
-                            {% endfor %}
+                            {% endfor %}-->
                         </thead>
                         <tbody>
                         </tbody>
@@ -124,14 +125,14 @@
                                 <th>Creator ID</th>
                                 <th>Tweet</th>
                             </tr>
-                            {% for tweet in tweets %}
+                            <!--{% for tweet in tweets %}
                             <tr>
                                 <td> {{ tweet['tweet_id'] }} </td>
                                 <td> {{ tweet['created_at'] }} </td>
                                 <td> {{ tweet['creator_id'] }} </td>
                                 <td> {{ tweet['text'] }} </td>
                             </tr>
-                            {% endfor %}
+                            {% endfor %}-->
                         </thead>
                         <tbody>
                         </tbody>
@@ -147,39 +148,43 @@
                     <h3>Authoritative</h3>
                     <p>Returns matches based on those authors with the most retweets first</p>
                 </div>
-                <br>
 
-                <!-- Data Insertion Control -->
-               <div class="dataInsertionControl" ><div>
-                    <H3>Data Insertion Control</H3>
-                    <p style="width: 600px; word-break: break-all; word-wrap: break-word;">
-                        This allows the user to simulate streaming of data into the application.
-                        Specify the insertion speed in number of records per second and click
-                        "Stream". Insertion delay can vary from 50 to 60000 milliseconds (60 seconds).
-                        Effectively a rate of 20 records / second to 1 every minute. Keep in mind that 
-                        system timer may not be precise enough to support single digit sleep.  
-                        
-                        User can also insert all the data at once in "batch" mode.
-                        Please note "batch" mode doesn't actually insert in batches it just
-                        eliminates the delay between records.
-                    </p>
+                <div id="Insert" class="tabcontent">
+                    <!-- Data Insertion Control -->
+                    <div class="dataInsertionControl">
+                        <div>
+                            <H3>Data Insertion Control</H3>
+                            <p style="width: 600px; word-break: break-all; word-wrap: break-word;">
+                                This allows the user to simulate streaming of data into the application.
+                                Specify the insertion speed in number of records per second and click
+                                "Stream". Insertion delay can vary from 50 to 60000 milliseconds (60 seconds).
+                                Effectively a rate of 20 records / second to 1 every minute. Keep in mind that
+                                system timer may not be precise enough to support single digit sleep.
                     
-                    <form id="insertionForm" method="get">
-                        <label for="text">Delay (millis):</label>
-                        <input type="number" min="50" max="60000" id="insertionDelay" name="insertionDelay" placeholder="10" value="10">
-                        <input id="insertButton" type="button" value="Start" name="insertButton"> 
-                        <input id="clearButton" type="button" value="Clear" name="clearButton">
-                        <br> <br>
-                        Stream <input id="streamMode" type="radio" name="ingestionMode" value="stream" checked>
-                        Batch <input id="batchMode" type="radio" name="ingestionMode" value="batch">
-                        Corona-Out-2 <input type="radio" name="dataSampleChoice" id="sampleCorona2" checked>
-                        Corona-Out-3 <input type="radio" name="dataSampleChoice" id="sampleCorona3">
-                    </form>
-                    <div style="padding: 0px; border-style: inset; background-color: #b4b2b2; width: 200px">
-                        <div id="insertProgress" style="background-color: #77a77a; width:0%;">0%</div>
+                                User can also insert all the data at once in "batch" mode.
+                                Please note "batch" mode doesn't actually insert in batches it just
+                                eliminates the delay between records.
+                            </p>
+                    
+                            <form id="insertionForm" method="get">
+                                <label for="text">Delay (millis):</label>
+                                <input type="number" min="50" max="60000" id="insertionDelay" name="insertionDelay" placeholder="10"
+                                    value="10">
+                                <input id="insertButton" type="button" value="Start" name="insertButton">
+                                <input id="clearButton" type="button" value="Clear" name="clearButton">
+                                <br> <br>
+                                Stream <input id="streamMode" type="radio" name="ingestionMode" value="stream" checked>
+                                Batch <input id="batchMode" type="radio" name="ingestionMode" value="batch">
+                                Corona-Out-2 <input type="radio" name="dataSampleChoice" id="sampleCorona2" checked>
+                                Corona-Out-3 <input type="radio" name="dataSampleChoice" id="sampleCorona3">
+                            </form>
+                            <div style="padding: 0px; border-style: inset; background-color: #b4b2b2; width: 200px">
+                                <div id="insertProgress" style="background-color: #77a77a; width:0%;">0%</div>
+                            </div>
+                            <br>
+                            <div id="log"></div>
+                        </div>
                     </div>
-                    <br>
-                    <div id="log"></div>
                 </div>
             </div>
         </div>
@@ -235,10 +240,34 @@
 
             let tableBestTweets = new DataTable('#tweet-data-best', {
                 // options
+                searching: false,
+                paging: true,
+                pageLength: 10,
+                processing: true,
+                ajax: { url: "/search", type: "GET" },
+                // add column definitions to map your json to the table
+                columns: [
+                    { data: "tweet_id" },
+                    { data: "created_at" },
+                    { data: "creator_id" },
+                    { data: "text" }
+                ]
             });
 
             let tableLatestTweets = new DataTable('#tweet-data-latest', {
                 // options
+                searching: false,
+                paging: true,
+                pageLength: 10,
+                processing: true,
+                ajax: {url: "/search", type: "GET" },
+                // add column definitions to map your json to the table
+                columns: [
+                    { data: "tweet_id" },
+                    { data: "created_at" },
+                    { data: "creator_id" },
+                    { data: "text" }
+                ]
             });
 
             // Handle insert start/stop and clear

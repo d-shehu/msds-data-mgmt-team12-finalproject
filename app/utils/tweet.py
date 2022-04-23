@@ -145,7 +145,7 @@ def fnGetAll(dbConnection):
     try:
         print("Get tweets collection")
         tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
-        lsTweets = list(tweetCollection.find().limit(10))
+        lsTweets = tweetCollection.find().limit(30)
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)
 

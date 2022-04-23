@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
+from bson import json_util
+import json
+
 import threading
 
 # User library
@@ -65,6 +68,7 @@ def fnGetTextSearchArgs(args):
 @app.route("/search")
 def fnSearch():
     
+    ret = None
     try:
         fnGetTextSearchArgs(request.args)
 
@@ -72,13 +76,14 @@ def fnSearch():
 
         print("Searching tweets ...")
         lsTweets = tweet.fnGetAll(dbConnection)
-        print(lsTweets)
 
+        ret = {"data": json.loads(json_util.dumps(lsTweets)) }
+        
         mongodb.fnDisconnect(dbConnection)
     except Exception as error:
-        print("Error: could not search tweets")
+        print("Error: could not search tweets", error)
 
-    return render_template("index.html", tweets=lsTweets)
+    return ret #render_template("index.html", tweets=lsTweets)
 
 @app.route("/insert")
 def fnInsert():
