@@ -139,13 +139,22 @@ def fnProcessExtendedEntities(record, userData):
         print("Error while parsing entities JSON records from memory", e)
   
 
-def fnGetAll(dbConnection):
+def fnGetFiltered(dbConnection, searchArgs):
     lsTweets = []
 
     try:
+        maxResults = searchArgs["maxResults"]
+
         print("Get tweets collection")
         tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
-        lsTweets = tweetCollection.find().limit(30)
+        
+        if "searchText" in searchArgs:
+            print("Info: Mongo Search Filter is ", searchArgs["searchText"])
+            lsTweets = tweetCollection.find({ "$text": { "$search": searchArgs["searchText"] } }).limit(maxResults)
+        else:
+            print("Get all tweets")
+            lsTweets = tweetCollection.find().limit(maxResults)
+
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)
 

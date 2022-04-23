@@ -8,16 +8,18 @@
         <h2> Twitter Search Application </h2>
         <div class="parentContainer">
             <div class="sidenav">
-                <h3>Search Option</h3>
+                <h3>Option</h3> <br>
                 <!--<form name="searchOptionsForm" method="get" action="/tweets/search?">-->
+                    <input type="button" id="searchButton" name="searchButton" value="Search"> <br>
+
                     <button class="accordion">Tweets</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <input class="textInput" type="text" name="tweetText" placeholder="Type in string..."/>
+                            <input id="tweetText" class="textInput" type="text" name="tweetText" placeholder="Type in string..."/>
                             <br><br>
-                            Exact <input type="radio" name="tweetSearchMode" value="Exact" checked>
-                            All <input type="radio" name="tweetSearchMode" value="All">
-                            Any <input type="radio" name="tweetSearchMode" value="Any">
+                            Exact <input id="tweetTextSearchModeExact" type="radio" name="tweetSearchMode" value="Exact" checked>
+                            All <input id="tweetTextSearchModeAll" type="radio" name="tweetSearchMode" value="All">
+                            Any <input id="tweetTextSearchModeAny" type="radio" name="tweetSearchMode" value="Any">
                         </p>
                     </div>
 
@@ -68,10 +70,17 @@
                     <div class="panel">
                         <p>
                             <!-- Replace with drop down for the language-->
-                        <ul>
                             Start Date: <input id="startDate" type="date"><br>
                             End Date: <input id="endDate" type="date">
-                        </ul>
+                        </p>
+                    </div>
+
+                    <button class="accordion">Other</button>
+                    <div class="panel">
+                        <p>
+                            <!-- Replace with drop down for the language-->
+                            Max Results: <input type="number" min="50" max="60000" id="maxResults" 
+                                                name="maxResults" placeholder="30" value="30">
                         </p>
                     </div>
                 <!--</form>-->
@@ -92,7 +101,7 @@
                     <h3>Best Matches</h3>
                     Return results based on the number of time matching tweets were 
                     liked and retweeted
-                    <table id="tweet-data-best" class="table table-striped">
+                    <table id="tweet-data-best" class="table table-striped" width="100%"">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -201,6 +210,14 @@
             var acc = document.getElementsByClassName("accordion");
             // Websocket is used to show progress as records are inserted into the DB
             var socket = io();
+
+            // Search controls
+            var searchButton = document.getElementById("searchButton")
+            var tweetTextInput = document.getElementById("tweetText")
+            var tweetTextSearchModeExact = document.getElementById("tweetTextSearchModeExact")
+            var tweetTextSearchModeAll = document.getElementById("tweetTextSearchModeAll")
+            var maxResultsInput = document.getElementById("maxResults")
+
             // Insert button handle
             var insertionDelayButton = document.getElementById("insertionDelay")
             var streamModeButton = document.getElementById("streamMode")
@@ -215,7 +232,7 @@
             document.getElementById('startDate').valueAsDate = starDate;
             document.getElementById('endDate').valueAsDate = new Date();
 
-
+            // Handle Websocket updates from server showing progress from processing Tweets
             socket.addEventListener('update', event => {
                 console.log(event)
                 updateProgress(event.progress)
@@ -230,7 +247,6 @@
                 socket.emit('get_updates');
             });
 
-            // Handle Websocket updates from server showing progress from processing Tweets
             const updateProgress = (progress) => {
                 insertProgressBar.innerHTML = `${progress}`;
                 insertProgressBar.style.width = `${progress}`
@@ -238,13 +254,39 @@
                 insertButton.value = "Stop"
             };
 
+            // Table control functions
+            function fnConstructSearchFilter(){
+                url = "/search?maxResults=" + maxResultsInput.value
+                // Text search?
+                if(tweetTextInput.value != ""){
+                    //TODO: need to handle special characters
+                    url = url + "&searchText=" + tweetTextInput.value
+
+                    if(tweetTextSearchModeExact.checked){
+                        url = url + "&searchMode=exact"
+                    }
+                    else if(tweetTextSearchModeAll.checked){
+                        url = url + "&searchMode=all"
+                    }
+                    else{
+                        url = url + "&searchMode=all"
+                    }
+                }
+                // Date Range
+
+                console.log(url)
+
+                return url
+            }
+
             let tableBestTweets = new DataTable('#tweet-data-best', {
                 // options
                 searching: false,
                 paging: true,
                 pageLength: 10,
                 processing: true,
-                ajax: { url: "/search", type: "GET" },
+                autoWidth: true,
+                ajax: { url: "/search?maxResults=" + maxResultsInput.value, type: "GET" },
                 // add column definitions to map your json to the table
                 columns: [
                     { data: "tweet_id" },
@@ -260,7 +302,7 @@
                 paging: true,
                 pageLength: 10,
                 processing: true,
-                ajax: {url: "/search", type: "GET" },
+                ajax: {url: "/search?maxResults=" + maxResultsInput.value, type: "GET" },
                 // add column definitions to map your json to the table
                 columns: [
                     { data: "tweet_id" },
@@ -268,6 +310,10 @@
                     { data: "creator_id" },
                     { data: "text" }
                 ]
+            });
+
+            searchButton.addEventListener('click', async _ => {
+                tableBestTweets.ajax.url(fnConstructSearchFilter()).load()
             });
 
             // Handle insert start/stop and clear

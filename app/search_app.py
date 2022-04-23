@@ -9,6 +9,7 @@ import threading
 from utils import mongodb # TODO: hide this from top level code
 from utils import tweet
 from utils import ingest_data
+from utils import utils
 
 async_mode = None  # "threading", "eventlet" or "gevent"
 
@@ -56,29 +57,40 @@ def fnRoot():
     return render_template("index.html")
 
 def fnGetTextSearchArgs(args):
-    textSearch=request.args.get("search_text")
-    searchMode=request.args.get("search_mode")
+    maxResults=int(request.args.get("maxResults"))
+    searchText=request.args.get("searchText")
+    sSearchMode=request.args.get("searchMode")
 
-    if textSearch is not None:
-        print("Info: Streaming mode enabled")
-        doStream = True
-    else:
-        print("Warning: stream argument is not valid: ", textSearch)
+    # No search parameters defined
+    searchArgs = {}
+
+    searchArgs["maxResults"] = maxResults
+
+    # User may not have specified search
+    if searchText is not None and sSearchMode is not None:
+        searchMode = utils.fnGetSearchMode(sSearchMode)
+        searchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
+
+        print("Info: Searching for text {0} using mode {1}".format(searchTextModified, searchMode))
+        searchArgs["searchText"] = searchTextModified
+        searchArgs["searchMode"] = sSearchMode
+
+    return searchArgs
 
 @app.route("/search")
 def fnSearch():
     
     ret = None
     try:
-        fnGetTextSearchArgs(request.args)
+        searchArgs = fnGetTextSearchArgs(request.args)
 
         dbConnection = mongodb.fnConnect()
 
         print("Searching tweets ...")
-        lsTweets = tweet.fnGetAll(dbConnection)
+        lsTweets = tweet.fnGetFiltered(dbConnection, searchArgs)
 
         ret = {"data": json.loads(json_util.dumps(lsTweets)) }
-        
+
         mongodb.fnDisconnect(dbConnection)
     except Exception as error:
         print("Error: could not search tweets", error)

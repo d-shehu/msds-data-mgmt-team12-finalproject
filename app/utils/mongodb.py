@@ -1,6 +1,9 @@
 
+from dataclasses import replace
 import os
 from pymongo import MongoClient
+
+from . import utils
 
 def fnConnect():
    
@@ -41,6 +44,7 @@ def fnInitDB():
         tweetDB[fnGetTweetCollection()].create_index("tweet_id")
         tweetDB[fnGetTweetCollection()].create_index("creator_id")
         tweetDB[fnGetTweetCollection()].create_index("tags")
+        tweetDB[fnGetTweetCollection()].create_index([('text', 'text')])
         
         fnDisconnect(dbConnection)
     except Exception as error:
@@ -52,6 +56,32 @@ def fnGetCollections(dbConnection):
         return tweetDB[fnGetTweetCollection()], tweetDB[fnGetTagCollection()]
     except Exception as error:
         print("Error while creating collection: ", error)
+
+
+def fnGetSearchString(searchText, searchMode):
+
+    # For ANY just pass in as
+    sModified = searchText
+    # Match phrase exactly
+    if (searchMode == utils.SearchMode.EXACT):
+        # Strip quotes from the string since string is used to specify exact
+        # Unfortunately this is a limitation
+        sModified = searchText.replace("\"", "")
+        sModified = "\"{0}\"".format(sModified)
+    elif (searchMode == utils.SearchMode.ALL):
+        # See comment above
+        sModified = searchText.replace("\"", "")
+        # tokenize
+        lsTokenList = sModified.split()
+
+        sModified = ""
+        for sToken in lsTokenList:
+            sModified = sModified + "\"{0}\" ".format(sToken)
+    
+    print("Info: modified search term: ", sModified)
+
+    return sModified
+    
 
 def fnDisconnect(dbConnection):
     dbConnection.close()
