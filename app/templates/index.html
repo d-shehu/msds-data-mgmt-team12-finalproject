@@ -8,10 +8,8 @@
         <h2> Twitter Search Application </h2>
         <div class="parentContainer">
             <div class="sidenav">
-                <h3>Option</h3> <br>
+                <h3>Search Option</h3> <br>
                 <!--<form name="searchOptionsForm" method="get" action="/tweets/search?">-->
-                    <input type="button" id="searchButton" name="searchButton" value="Search"> <br>
-
                     <button class="accordion">Tweets</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
@@ -57,7 +55,7 @@
 
                     <button class="accordion">Country</button>
                     <div class="panel">
-                        <p style="margin-left: 20px; text-align: left;">
+                        <p style="margin-left: 20px;">
                             <!-- Replace with drop down for the language-->
                             <select name="country" id="country">
                                 <option value="united_states">United States</option>
@@ -68,21 +66,27 @@
 
                     <button class="accordion">Time Frame</button>
                     <div class="panel">
-                        <p>
+                        <p style="margin-left: 20px;">
                             <!-- Replace with drop down for the language-->
                             Start Date: <input id="startDate" type="date"><br>
-                            End Date: <input id="endDate" type="date">
+                            End Date: <input id="endDate" type="date"><br>
+                            Enabled: <input type="checkbox" id="searchTimeFrame" name="searchTimeFrame">
                         </p>
                     </div>
 
                     <button class="accordion">Other</button>
                     <div class="panel">
-                        <p>
+                        <p style="margin-left: 20px;">
                             <!-- Replace with drop down for the language-->
                             Max Results: <input type="number" min="50" max="60000" id="maxResults" 
                                                 name="maxResults" placeholder="30" value="30">
                         </p>
                     </div>
+
+                    <p style="text-align: center;">
+                        <br><br> <input type="button" id="searchButton" name="searchButton" value="Search"> <br>
+                    </p>
+
                 <!--</form>-->
             </div>
 
