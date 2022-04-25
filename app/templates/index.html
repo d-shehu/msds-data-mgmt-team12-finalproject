@@ -13,7 +13,7 @@
                     <button class="accordion">Tweets</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <input id="tweetText" class="textInput" type="text" name="tweetText" placeholder="Type in string..."/>
+                            <input id="tweetText" class="textInput" type="text" name="tweetText" placeholder="Type in tweet text..."/>
                             <br><br>
                             Exact <input id="tweetTextSearchModeExact" type="radio" name="tweetSearchMode" value="Exact" checked>
                             All <input id="tweetTextSearchModeAll" type="radio" name="tweetSearchMode" value="All">
@@ -24,10 +24,11 @@
                     <button class="accordion">Hashtags</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <input class="textInput" type="text" name="hashtagText" placeholder="Type in string..." />
+                            <input class="textInput" type="text" name="hashtagText" placeholder="Type in hashtag(s)..." />
                             <br><br>
-                            All <input type="radio" name="hashtagSearchMode" value="All" checked>
-                            Any <input type="radio" name="hashtagSearchMode" value="Any">
+                            Exact <input id="hashtagSearchModeExact" type="radio" name="hashtagSearchModeExact" value="Exact" checked>
+                            All <input id="hashtagSearchModeAll" type="radio" name="hashtagSearchModeAll" value="All" checked>
+                            Any <input id="hashtagSearchModeAny" type="radio" name="hashtagSearchModeAny" value="Any">
                         </p>
                     </div>
 
@@ -47,20 +48,22 @@
                         <p style="margin-left: 20px; text-align: left;">
                             <!-- Replace with dynamically created drop down for the language-->
                             <select name="searchLanguage" id="searchLanguage">
-                                <option value="english">English</option>
-                                <option value="french">French</option>
+                                <option value="en">English</option>
                             </select>
                         </p>
                     </div>
 
-                    <button class="accordion">Country</button>
+                    <button class="accordion">Place</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
                             <!-- Replace with drop down for the language-->
-                            <select name="country" id="country">
-                                <option value="united_states">United States</option>
-                                <option value="india">India</option>
-                            </select>
+                            Type: <select name="searchPlaceType" id="searchPlaceType">
+                                <option value="NA">ANY</option>
+                            </select><br>
+                            Country: <br> <select name="searchPlaceCountry" id="searchPlaceCountry">
+                                <option value="NA">ANY</option>
+                            </select><br>
+                            Name: <input id="searchPlaceName" class="textInput" type="text" name="searchPlaceName" placeholder="New York" />
                         </p>
                     </div>
 
@@ -199,16 +202,28 @@
             // Websocket is used to show progress as records are inserted into the DB
             var socket = io();
 
-            // Search controls
+            // All Search controls
             var searchButton = document.getElementById("searchButton")
+            // Tweet
             var tweetTextInput = document.getElementById("tweetText")
             var tweetTextSearchModeExact = document.getElementById("tweetTextSearchModeExact")
             var tweetTextSearchModeAll = document.getElementById("tweetTextSearchModeAll")
+            // Hashtag
+            var hashtagTextInput = document.getElementById("hashtagText")
+            var hashtagTextSearchModeExact = document.getElementById("hashtagTextSearchModeExact")
+            var hashtagTextSearchModeAll = document.getElementById("hashtagTextSearchModeAll")
+            // Results
             var maxResultsInput = document.getElementById("maxResults")
+            // Date
             var searchStartDateInput = document.getElementById("searchStartDate")
             var searchEndDateInput = document.getElementById("searchEndDate")
             var searchTimeFrameCheckbox = document.getElementById("searchTimeFrame")
+            // Language and Place
             var searchLanguageDropdown = document.getElementById('searchLanguage')
+            var searchPlaceTypeDropdown = document.getElementById('searchPlaceType')
+            var searchPlaceCountryDropdown = document.getElementById('searchPlaceCountry')
+            var searchPlaceNameInput = document.getElementById('searchPlaceName')
+            
 
             // Insert button handle
             var insertionDelayButton = document.getElementById("insertionDelay")
@@ -283,6 +298,78 @@
                 }
             }
 
+            document.getElementById('searchPlaceType').onclick = function () {
+                console.log("Clicked on place type...")
+
+                try {
+                    // Get languages from data
+                    url = "http://" + window.location.host + "/place_types";
+                    // Replace ./data.json with your JSON feed
+                    fetch(url).then((response) => {
+                        return response.json()
+                    })
+                        .then((data) => {
+                            // Clear menu
+                            while (searchPlaceTypeDropdown.firstChild) {
+                                searchPlaceTypeDropdown.removeChild(searchPlaceTypeDropdown.firstChild);
+                            }
+                            // Add default option
+                            var option = document.createElement("option");
+                            option.value = "NA"
+                            option.text = "ANY"
+                            searchPlaceTypeDropdown.appendChild(option)
+
+                            for (aType of data.place_types) {
+                                var option = document.createElement("option");
+                                option.value = aType
+                                option.text = aType
+                                searchPlaceTypeDropdown.appendChild(option)
+                            }
+                        })
+                        .catch((error) => {
+                            console.log("Unexpected error: " + error)
+                        })
+                } catch (err) {
+                    console.error(`Error while loading place types: ${err}`);
+                }
+            }
+
+            document.getElementById('searchPlaceCountry').onclick = function () {
+                console.log("Clicked on place countries...")
+
+                try {
+                    // Get languages from data
+                    url = "http://" + window.location.host + "/place_countries";
+                    // Replace ./data.json with your JSON feed
+                    fetch(url).then((response) => {
+                        return response.json()
+                    })
+                        .then((data) => {
+                            // Clear menu
+                            while (searchPlaceCountryDropdown.firstChild) {
+                                searchPlaceCountryDropdown.removeChild(searchPlaceCountryDropdown.firstChild);
+                            }
+                            // Add default option
+                            var option = document.createElement("option");
+                            option.value = "NA"
+                            option.text = "ANY"
+                            searchPlaceCountryDropdown.appendChild(option)
+
+                            for (aType of data.place_types) {
+                                var option = document.createElement("option");
+                                option.value = aType
+                                option.text = aType
+                                searchPlaceCountryDropdown.appendChild(option)
+                            }
+                        })
+                        .catch((error) => {
+                            console.log("Unexpected error: " + error)
+                        })
+                } catch (err) {
+                    console.error(`Error while loading place types: ${err}`);
+                }
+            }
+
             // Search control functions
             function fnConstructSearchFilter(){
                 url = "/search?maxResults=" + maxResultsInput.value
@@ -298,7 +385,21 @@
                         url = url + "&searchMode=all"
                     }
                     else{
-                        url = url + "&searchMode=all"
+                        url = url + "&searchMode=any"
+                    }
+                }
+                if (hashtagTextInput.value != "") {
+                    //TODO: need to handle special characters
+                    url = url + "&hashtagText=" + hashtagTextInput.value
+
+                    if (hashtagTextSearchModeExact.checked) {
+                        url = url + "&hashtagSearchMode=exact"
+                    }
+                    else if (hashtagTextSearchModeAll.checked) {
+                        url = url + "&hashtagSearchMode=all"
+                    }
+                    else {
+                        url = url + "&hashtagSearchMode=any"
                     }
                 }
                 // Date Range

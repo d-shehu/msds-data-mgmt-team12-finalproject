@@ -63,6 +63,8 @@ def fnGetTextSearchArgs(args):
     maxResults=int(request.args.get("maxResults"))
     searchText=request.args.get("searchText")
     sSearchMode=request.args.get("searchMode")
+    hashtagSearchText=request.args.get("hashtagText")
+    sHashtagSearchMode=request.args.get("hashtagSearchMode")
     searchStartDate=request.args.get("startDate")
     searchEndDate=request.args.get("endDate")
     searchLanguage=request.args.get("searchLang")
@@ -80,6 +82,15 @@ def fnGetTextSearchArgs(args):
         print("Info: Searching for text {0} using mode {1}".format(searchTextModified, searchMode))
         searchArgs["searchText"] = searchTextModified
         searchArgs["searchMode"] = sSearchMode
+
+    # Copy paste logic for hashtag search arguments
+    if hashtagSearchText is not None and sHashtagSearchMode is not None:
+        hashtagSearchMode = utils.fnGetSearchMode(sHashtagSearchMode)
+        hashtagSearchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
+
+        print("Info: Searching for text {0} using mode {1}".format(hashtagSearchTextModified, hashtagSearchMode))
+        searchArgs["hashtagSearchText"] = searchTextModified
+        searchArgs["hashtagSearchMode"] = hashtagSearchMode
     
     # Filter on this date range if one is provided
     if searchStartDate is not None and searchEndDate is not None:
@@ -207,6 +218,18 @@ def fnGetLanguages():
     lsLangs = meta.fnGetAllLanguages()
     print("Get languages", lsLangs)
     return {"languages": lsLangs}
+
+@app.route("/place_types")
+def fnGetPlaceTypes():
+    lsPlaceTypes = meta.fnGetAllPlaceTypes()
+    print("Get place types", lsPlaceTypes)
+    return {"place_types": lsPlaceTypes}
+
+@app.route("/place_countries")
+def fnGetPlaceCountries():
+    lsPlaceCountries = meta.fnGetAllPlaceCountries()
+    print("Get place types", lsPlaceCountries)
+    return {"place_types": lsPlaceCountries}
 
 @socketio.on('get_updates')
 def fnGetUpdates():

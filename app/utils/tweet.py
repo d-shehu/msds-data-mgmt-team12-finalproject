@@ -43,6 +43,10 @@ def fnProcessTweets(record, userData):
         if "in_reply_to_status_id" in record:
             inReplyToStatusID = record["in_reply_to_status_id"]
 
+        placeID = None
+        if "place" in record and record["place"] is not None:
+            placeID = meta.fnProcessPlace(record["place"], userData)
+
         # Grab the creator
         creatorID = user.fnProcessUser(record["user"], userData)
 
@@ -71,6 +75,7 @@ def fnProcessTweets(record, userData):
             # Tags
             "tags":                 lsTagIDs,
             # Other
+            "place_id":             placeID,
             "lang_code":            langCode   
         })
 

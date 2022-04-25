@@ -28,7 +28,7 @@ def fnInsertLanguage(langCode, userData):
     except Exception as e:
         print("Error while trying to add language: ", e)
 
-# Wrapper function, may add some caching later if performance warrants it
+# Wrapper functions. May add caching later if performance warrants it
 def fnGetAllLanguages(pgConnection=None):
     lsLanguages = []
 
@@ -46,3 +46,50 @@ def fnGetAllLanguages(pgConnection=None):
         print("Error unable to get language from database")
 
     return lsLanguages
+
+def fnProcessPlace(placeRecord, userData):
+
+    id = None
+    try:
+        pgConnection = userData["pgConn"]
+        id = placeRecord["id"]
+        pgdb.fnInsertPlace(pgConnection, id, placeRecord["place_type"], 
+                            placeRecord["name"], placeRecord["country"], placeRecord["country_code"])
+    except Exception as e:
+        print("Error while parsing place", e)
+
+    return id
+
+def fnGetAllPlaceTypes(pgConnection=None):
+    lsPlaceTypes = []
+
+    try:
+        createConn=pgConnection is None
+        if createConn:
+            pgConnection = pgdb.fnConnect()
+
+        lsLanguages = pgdb.fnGetAllPlaceTypes(pgConnection)
+
+        if createConn:
+            pgdb.fnDisconnect(pgConnection)
+    except Exception as e:
+        print("Error unable to get languages from database")
+
+    return lsLanguages
+
+def fnGetAllPlaceCountries(pgConnection=None):
+    lsPlaceCountries = []
+
+    try:
+        createConn=pgConnection is None
+        if createConn:
+            pgConnection = pgdb.fnConnect()
+
+        lsPlaceCountries = pgdb.fnGetAllPlaceCountries(pgConnection)
+
+        if createConn:
+            pgdb.fnDisconnect(pgConnection)
+    except Exception as e:
+        print("Error unable to get countries from database")
+
+    return lsPlaceCountries

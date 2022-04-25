@@ -59,13 +59,15 @@ def fnInitSchema(dbConnection):
                 # many options exist in Twitter data.
                 curs.execute("""DROP TABLE IF EXISTS place CASCADE;
                                 CREATE TABLE place(
-                                    id SERIAL PRIMARY KEY,
-                                    name VARCHAR(64),
+                                    id serial PRIMARY KEY,
+                                    original_id text UNIQUE,
                                     type VARCHAR(64),
-                                    country VARCHAR(64)
+                                    name VARCHAR(64),
+                                    country VARCHAR(64),
+                                    country_code CHAR(2)
                                 );
-                                CREATE INDEX tbl_place_city_idx ON place USING gin (name);
                                 CREATE INDEX tbl_place_type_idx ON place USING gin (type);
+                                CREATE INDEX tbl_place_city_idx ON place USING gin (name);
                                 CREATE INDEX tbl_place_country_idx ON place USING gin (country);
                             """)
 
@@ -213,3 +215,103 @@ def fnGetAllLanguages(dbConnection):
         print("Info: error while fetching languages from the database")
 
     return lsLanguages
+
+def fnGetPlaceFromResult(dbRecord):
+    outPlace=None
+
+    if(dbRecord is not None):
+        outPlace = {
+            "id":           dbRecord[0],
+            "original_id":  dbRecord[1],
+            "type":         dbRecord[2],
+            "name":         dbRecord[3],
+            "country":      dbRecord[4],
+            "countryCode":  dbRecord[5]
+        }
+        
+    return outPlace
+
+def fnGetPlaceFromID(dbConnection, id):
+    outPlace=None
+        
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT * FROM place WHERE id='{0}'".format(id))
+
+            outPlace = fnGetPlaceFromResult(curs.fetchone())
+    except Exception as e:
+        print("Info: place with id not found or field was missing: ", id)
+    
+    return outPlace
+
+def fnGetPlaceFromOriginalID(dbConnection, originalID):
+    outPlace=None
+        
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT * FROM place WHERE original_id='{0}'".format(originalID))
+
+            outPlace = fnGetPlaceFromResult(curs.fetchone())
+    except Exception as e:
+        print("Info: place with original(twitter) id not found or field was missing: ", originalID)
+    
+    return outPlace
+
+def fnInsertPlace(dbConnection, originalID, placeType, placeName, country, countryCode):
+
+    newID = None
+
+    try:
+        # Only insert if the user hasn't been added before
+        dbPlace = fnGetPlaceFromOriginalID(dbConnection, originalID)
+        if dbPlace is None:
+            # TODO: fix language code
+            with dbConnection.cursor() as curs:
+                sQuery = """INSERT INTO place (original_id, type, name, country, country_code)
+                            VALUES ('{0}', '{1}', '{2}', '{3}', '{4}') RETURNING id;
+                        """.format(originalID, placeType, placeName, country, countryCode)
+                
+                curs.execute(sQuery)
+
+                # Should return the serial (new id)
+                newID = (curs.fetchone())[0]
+                print("New place id is:", newID)
+
+    except Exception as e:
+        print("Error while trying to insert place: ", e)
+
+    return newID
+
+def fnGetAllPlaceTypes(dbConnection):
+    lsPlaceTypes=[]
+
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT DISTINCT type FROM place ORDER BY type")
+
+            # Grab them all
+            typeRecs = curs.fetchall()
+            for typeRec in typeRecs:
+                lsPlaceTypes.append(typeRec[0])
+
+    except Exception as e:
+        print("Info: error while fetching place types from the database")
+
+    return lsPlaceTypes
+
+def fnGetAllPlaceCountries(dbConnection):
+    lsPlaceCountries=[]
+
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT DISTINCT country FROM place ORDER BY country")
+
+            # Grab them all
+            countryRecs = curs.fetchall()
+            for countryRec in countryRecs:
+                lsPlaceCountries.append(countryRec[0])
+
+    except Exception as e:
+        print("Info: error while fetching place countries from the database")
+
+    return lsPlaceCountries
