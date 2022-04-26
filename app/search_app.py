@@ -77,20 +77,20 @@ def fnGetTextSearchArgs(args):
     # User may not have specified search text
     if searchText is not None and sSearchMode is not None:
         searchMode = utils.fnGetSearchMode(sSearchMode)
-        searchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
+        searchTextModified = utils.fnGetSearchString(searchText, searchMode)
 
         print("Info: Searching for text {0} using mode {1}".format(searchTextModified, searchMode))
         searchArgs["searchText"] = searchTextModified
-        searchArgs["searchMode"] = sSearchMode
+        searchArgs["searchMode"] = searchMode
 
     # Copy paste logic for hashtag search arguments
     if hashtagSearchText is not None and sHashtagSearchMode is not None:
         hashtagSearchMode = utils.fnGetSearchMode(sHashtagSearchMode)
-        hashtagSearchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
+        hashtagSearchTextModified = utils.fnGetSearchTags(hashtagSearchText, sHashtagSearchMode)
 
         print("Info: Searching for text {0} using mode {1}".format(hashtagSearchTextModified, hashtagSearchMode))
-        searchArgs["hashtagSearchText"] = hashtagSearchTextModified
-        searchArgs["hashtagSearchMode"] = hashtagSearchMode
+        searchArgs["searchHashtag"] = hashtagSearchTextModified
+        searchArgs["searchHashtagMode"] = hashtagSearchMode
     
     # Filter on this date range if one is provided
     if searchStartDate is not None and searchEndDate is not None:

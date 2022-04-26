@@ -60,31 +60,29 @@ def fnGetCollections(dbConnection):
     except Exception as error:
         print("Error while creating collection: ", error)
 
+def fnSearchText(searchCriteria, sField, sSearchText):
+    searchCriteria[("$" + sField)] = { "$search": sSearchText }
 
-def fnGetSearchString(searchText, searchMode):
+# Search for tags with the 3 modes given. Similar to the text search
+# but syntax is a bit different.
+# See: https://www.mongodb.com/docs/manual/tutorial/query-arrays/
+def fnSearchTags(searchCriteria, sField, lsTags, searchMode):
+    # All tags in this order
+    if searchMode == utils.SearchMode.EXACT:
+        searchCriteria[sField] = lsTags
+    # Every tags but in any order in text
+    elif searchMode == utils.SearchMode.ALL:
+        searchCriteria[sField] = { "$all": lsTags }
+    elif searchMode == utils.SearchMode.ANY:
+        searchCriteria[sField] = { "$in": lsTags }
+    else:
+        print("Error: unknown search mode:", searchMode)
 
-    # For ANY just pass in as
-    sModified = searchText
-    # Match phrase exactly
-    if (searchMode == utils.SearchMode.EXACT):
-        # Strip quotes from the string since string is used to specify exact
-        # Unfortunately this is a limitation
-        sModified = searchText.replace("\"", "")
-        sModified = "\"{0}\"".format(sModified)
-    elif (searchMode == utils.SearchMode.ALL):
-        # See comment above
-        sModified = searchText.replace("\"", "")
-        # tokenize
-        lsTokenList = sModified.split()
+def fnSearchRange(searchCriteria, sField, sStart, sEnd):
+    searchCriteria[sField] = { "$lt": sEnd, "$gte": sStart }
 
-        sModified = ""
-        for sToken in lsTokenList:
-            sModified = sModified + "\"{0}\" ".format(sToken)
-    
-    print("Info: modified search term: ", sModified)
-
-    return sModified
-    
+def fnSearchExactValue(searchCriteria, sField, sValue):
+    searchCriteria[sField] = { "$eq": sValue }
 
 def fnDisconnect(dbConnection):
     dbConnection.close()

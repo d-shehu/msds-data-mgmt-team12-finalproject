@@ -2,6 +2,7 @@ from warnings import catch_warnings
 import pycountry
 
 from . import pgdb
+from . import utils
 
 def fnInsertCountry(countryCode):
     try:
@@ -54,7 +55,7 @@ def fnProcessPlace(placeRecord, userData):
         pgConnection = userData["pgConn"]
         id = placeRecord["id"]
         pgdb.fnInsertPlace(pgConnection, id, placeRecord["place_type"], 
-                            placeRecord["name"], placeRecord["country"], placeRecord["country_code"])
+                            utils.fnGetSQLSafeStr(placeRecord["name"]), placeRecord["country"], placeRecord["country_code"])
     except Exception as e:
         print("Error while parsing place", e)
 

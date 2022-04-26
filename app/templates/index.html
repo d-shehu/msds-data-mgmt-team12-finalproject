@@ -26,9 +26,9 @@
                         <p style="margin-left: 20px;">
                             <input id="hashtagText" class="textInput" type="text" name="hashtagText" placeholder="Type in hashtag(s)..." />
                             <br><br>
-                            Exact <input id="hashtagSearchModeExact" type="radio" name="hashtagSearchModeExact" value="Exact" checked>
-                            All <input id="hashtagSearchModeAll" type="radio" name="hashtagSearchModeAll" value="All">
-                            Any <input id="hashtagSearchModeAny" type="radio" name="hashtagSearchModeAny" value="Any">
+                            Exact <input id="hashtagSearchModeExact" type="radio" name="hashtagSearchMode" value="Exact" checked>
+                            All <input id="hashtagSearchModeAll" type="radio" name="hashtagSearchMode" value="All">
+                            Any <input id="hashtagSearchModeAny" type="radio" name="hashtagSearchMode" value="Any">
                         </p>
                     </div>
 
@@ -115,6 +115,7 @@
                                 <th>Created At</th>
                                 <th>Creator</th>
                                 <th>Tweet</th>
+                                <th>Hashtags</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,6 +133,7 @@
                                 <th>Created At</th>
                                 <th>Creator</th>
                                 <th>Tweet</th>
+                                <th>Hashtags</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -210,8 +212,8 @@
             var tweetTextSearchModeAll = document.getElementById("tweetTextSearchModeAll")
             // Hashtag
             var hashtagTextInput = document.getElementById("hashtagText")
-            var hashtagTextSearchModeExact = document.getElementById("hashtagTextSearchModeExact")
-            var hashtagTextSearchModeAll = document.getElementById("hashtagTextSearchModeAll")
+            var hashtagTextSearchModeExact = document.getElementById("hashtagSearchModeExact")
+            var hashtagTextSearchModeAll = document.getElementById("hashtagSearchModeAll")
             // Results
             var maxResultsInput = document.getElementById("maxResults")
             // Date
@@ -430,7 +432,8 @@
                     { data: "tweet_id" },
                     { data: "created_at" },
                     { data: "creator_screen_name" },
-                    { data: "text" }
+                    { data: "text" },
+                    { data: "hashtags" }
                 ]
             });
 
@@ -446,7 +449,8 @@
                     { data: "tweet_id" },
                     { data: "created_at" },
                     { data: "creator_screen_name" },
-                    { data: "text" }
+                    { data: "text" },
+                    { data: "hashtags" }
                 ]
             });
 

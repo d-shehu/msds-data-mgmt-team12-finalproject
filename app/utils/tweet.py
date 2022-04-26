@@ -29,7 +29,7 @@ def fnProcessTweets(record, userData):
         #print("\n")
 
         # Extract tags from entities (if any)
-        lsTagIDs = fnProcessEntities(record, userData)
+        lsTags, lsMentions = fnProcessEntities(record, userData)
 
         retweetID = None
         if "retweet_status" in record:
@@ -73,7 +73,8 @@ def fnProcessTweets(record, userData):
             "retweet_count":        record["retweet_count"],
             "favorite_count":       record["favorite_count"],
             # Tags
-            "tags":                 lsTagIDs,
+            "hashtags":             lsTags,
+            "user_mentions":        lsMentions,
             # Other
             "place_id":             placeID,
             "lang_code":            langCode   
@@ -89,35 +90,27 @@ def fnProcessTweets(record, userData):
 
     except Exception as e:
         print("Error while parsing tweet JSON records from memory", e)
-
-
-def fnInsertTag(tagText, tagType, tagCollection):
-    result = tagCollection.insert_one({
-        "text": tagText,
-        "type": tagType
-    })
-    # TODO: consider adding a counter so we track the most used tags
-    return result.inserted_id
     
 def fnProcessEntities(record, userData):
 
-    lsTagIDs = []
+    lsTags = []
+    lsMentions = []
 
     try:
         entities = record["entities"]
         if entities is not None:
-            tagCollection = userData["tagCollection"]
-
-            # Start with the hashtags and expand. This will be a list
-            # of "tags" (SearchApp) and hashtag is a type of tag supported
+            # Keeping only hashtags and mentions since those seem the
+            # most useful in terms of tags/categories for the data 
             hashTags = entities["hashtags"]
             if hashTags is not None:
                 for tag in hashTags:
                     # Only care about the text and not it's position
                     if "text" in tag:
-                        tagID = fnInsertTag(tag["text"], "hashtag", tagCollection)
-                        if tagID is not None:
-                            lsTagIDs.append(tagID)
+                        # Twitter parses every instance of hashtag
+                        # but we only search on the unique instance
+                        # so let's just keep those
+                        if not tag["text"] in lsTags:
+                            lsTags.append(tag["text"])
                     else:
                         print("Warning: hashtag missing text")
             
@@ -126,9 +119,7 @@ def fnProcessEntities(record, userData):
                 for user in userMentions:
                     # Only care about the screen name
                     if "screen_name" in user:
-                        tagID = fnInsertTag(user["screen_name"], "mentions", tagCollection)
-                        if tagID is not None:
-                            lsTagIDs.append(tagID)
+                        lsMentions.append(user["screen_name"])
                     else:
                         print("Warning: user mention missing screen_name")
         else:
@@ -137,7 +128,7 @@ def fnProcessEntities(record, userData):
     except Exception as e:
         print("Error while parsing entities record", e)
 
-    return lsTagIDs
+    return lsTags, lsMentions
 
 # Let's include the full tweet text. There is no limitation
 # on Mongo so we can just replace the truncated text with full text
@@ -159,25 +150,32 @@ def fnGetFiltered(dbConnection, searchArgs):
         print("Get tweets collection")
         tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
 
-        mongoSearchCriteria = {}
+        searchCriteria = {}
         
+        # TODO: this code should move to the mongodb python file
         # Search criteria includes text
         if "searchText" in searchArgs:
             print("Info: Mongo Search Filter is ", searchArgs["searchText"])
-            mongoSearchCriteria["$text"] = { "$search": searchArgs["searchText"] }
+            mongodb.fnSearchText(searchCriteria, "text", searchArgs["searchText"])
+        # This is a bit more complex. Search hashtag in collection to get the ids
+        # then do a search
+        if "searchHashtag" in searchArgs:
+            print("Info: Mongo Tag Filter is ", searchArgs["searchHashtag"]) 
+            mongodb.fnSearchTags(searchCriteria, "hashtags", searchArgs["searchHashtag"], 
+                                    searchArgs["searchHashtagMode"])
         # Modify search criteria to include dates?
         if "startDate" in searchArgs and "endDate" in searchArgs:
             print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
             print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
-            startDatetime = datetime.strptime(searchArgs["startDate"], "%Y-%m-%d")
-            endDatetime = datetime.strptime(searchArgs["endDate"], "%Y-%m-%d")
-            mongoSearchCriteria["created_at"] = {'$lt': searchArgs["endDate"], '$gte': searchArgs["startDate"]}
+            mongodb.fnSearchRange(searchCriteria, "created_at", searchArgs["startDate"], searchArgs["endDate"])
         # Search criteria includes language
         if "searchLang" in searchArgs:
-            mongoSearchCriteria["lang_code"] = {'$eq': searchArgs["searchLang"]}
+            print("Info: Searching for Language", searchArgs["searchLang"])
+            mongodb.fnSearchExactValue(searchCriteria, "lang_code", searchArgs["searchLang"])
+            searchCriteria["lang_code"] = {'$eq': searchArgs["searchLang"]}
 
-        print("Mongo search criteria: ", mongoSearchCriteria)
-        lsTweets = list(tweetCollection.find(mongoSearchCriteria).limit(maxResults))
+        print("Info: Mongo search criteria: ", searchCriteria)
+        lsTweets = list(tweetCollection.find(searchCriteria).limit(maxResults))
 
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)

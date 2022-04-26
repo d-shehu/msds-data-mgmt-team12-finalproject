@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from . import meta
 from . import pgdb
+from . import utils
 
 # This function inserts records one at a time as with Mongo
 # Since it "commits" after each insert it can be a bit slow
@@ -26,6 +26,9 @@ def fnProcessUser(record, userData):
         followersCount  = record["followers_count"]
         friendsCount    = record["friends_count"]
         listedCount     = record["listed_count"]
+
+        # Handle quotes in the name so query doesn't break
+        screenNameModified = utils.fnGetSQLSafeStr(screenName)
 
         # TODO fixed language code
         pgdb.fnInsertUser(pgConnection, id, screenName, "", followersCount, friendsCount,
