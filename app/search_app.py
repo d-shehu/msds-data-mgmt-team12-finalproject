@@ -89,7 +89,7 @@ def fnGetTextSearchArgs(args):
         hashtagSearchTextModified = mongodb.fnGetSearchString(searchText, searchMode)
 
         print("Info: Searching for text {0} using mode {1}".format(hashtagSearchTextModified, hashtagSearchMode))
-        searchArgs["hashtagSearchText"] = searchTextModified
+        searchArgs["hashtagSearchText"] = hashtagSearchTextModified
         searchArgs["hashtagSearchMode"] = hashtagSearchMode
     
     # Filter on this date range if one is provided

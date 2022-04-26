@@ -24,10 +24,10 @@
                     <button class="accordion">Hashtags</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <input class="textInput" type="text" name="hashtagText" placeholder="Type in hashtag(s)..." />
+                            <input id="hashtagText" class="textInput" type="text" name="hashtagText" placeholder="Type in hashtag(s)..." />
                             <br><br>
                             Exact <input id="hashtagSearchModeExact" type="radio" name="hashtagSearchModeExact" value="Exact" checked>
-                            All <input id="hashtagSearchModeAll" type="radio" name="hashtagSearchModeAll" value="All" checked>
+                            All <input id="hashtagSearchModeAll" type="radio" name="hashtagSearchModeAll" value="All">
                             Any <input id="hashtagSearchModeAny" type="radio" name="hashtagSearchModeAny" value="Any">
                         </p>
                     </div>
@@ -60,7 +60,7 @@
                             Type: <select name="searchPlaceType" id="searchPlaceType">
                                 <option value="NA">ANY</option>
                             </select><br>
-                            Country: <br> <select name="searchPlaceCountry" id="searchPlaceCountry">
+                            Country: <select name="searchPlaceCountry" id="searchPlaceCountry">
                                 <option value="NA">ANY</option>
                             </select><br>
                             Name: <input id="searchPlaceName" class="textInput" type="text" name="searchPlaceName" placeholder="New York" />
