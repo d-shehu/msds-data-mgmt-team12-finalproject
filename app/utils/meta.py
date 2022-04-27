@@ -91,6 +91,24 @@ def fnGetAllPlaceCountries(pgConnection=None):
         if createConn:
             pgdb.fnDisconnect(pgConnection)
     except Exception as e:
-        print("Error unable to get countries from database")
+        print("Error: unable to get countries from database:", e)
 
     return lsPlaceCountries
+
+# TODO: wrapper that could be used to cache results in Redis
+def fnGetMatchingPlaceIDs(sType, sName, sCountry, pgConnection=None):
+    lsPlaceIDs = []
+
+    try:
+        createConn=pgConnection is None
+        if createConn:
+            pgConnection = pgdb.fnConnect()
+
+        lsPlaceIDs = pgdb.fnGetMatchingPlaceIDs(pgConnection, sType, sName, sCountry)
+
+        if createConn:
+            pgdb.fnDisconnect(pgConnection)  
+    except Exception as e:
+        print("Error while trying to fetch places")
+
+    return lsPlaceIDs

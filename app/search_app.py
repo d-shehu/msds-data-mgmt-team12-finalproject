@@ -70,6 +70,10 @@ def fnGetTextSearchArgs(args, pgConn):
     # People
     peopleSearchText=request.args.get("peopleText")
     sPeopleSearchMode=request.args.get("peopleSearchMode")
+    # Place
+    placeSearchType=request.args.get("placeSearchType")
+    placeSearchName=request.args.get("placeSearchName")
+    placeSearchCountry=request.args.get("placeSearchCountry")
     # Date & Misc
     searchStartDate=request.args.get("startDate")
     searchEndDate=request.args.get("endDate")
@@ -111,6 +115,12 @@ def fnGetTextSearchArgs(args, pgConn):
         searchArgs["searchPeople"] = peopleSearchTextModified
         searchArgs["searchPeopleMode"] = peopleSearchMode
 
+    # Place Search field shouldn't be NULL
+    if placeSearchType is not None or placeSearchName is not None or placeSearchCountry is not None:
+        print("Searching {0} {1} {2}".format(placeSearchType, placeSearchName, placeSearchCountry))
+        lsPlaceIDs = meta.fnGetMatchingPlaceIDs(placeSearchType, placeSearchName, placeSearchCountry, pgConn)
+        searchArgs["searchPlace"] = lsPlaceIDs
+
     # Filter on this date range if one is provided
     if searchStartDate is not None and searchEndDate is not None:
         searchArgs["startDate"] = searchStartDate
@@ -141,7 +151,7 @@ def fnSearch():
             screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
             aTweet["creator_screen_name"] = screen_name
 
-        print(lsTweets)
+        #print("Data dump:", lsTweets)
 
         ret = {"data": json.loads(json_util.dumps(lsTweets)) }
 

@@ -179,12 +179,17 @@ def fnGetFiltered(dbConnection, searchArgs):
             print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
             print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
             mongodb.fnSearchRange(searchCriteria, "created_at", searchArgs["startDate"], searchArgs["endDate"])
+
+        # Search places (IDs). Based on search parameters (type, name and country) there could be more than
+        # one. 
+        if "searchPlace" in searchArgs:
+            print("Info: Mongo Searching Places with IDs:", searchArgs["searchPlace"])
+            mongodb.fnSearchIn(searchCriteria, "place_id", searchArgs["searchPlace"])
         
         # Search criteria includes language
         if "searchLang" in searchArgs:
             print("Info: Searching for Language", searchArgs["searchLang"])
             mongodb.fnSearchExactValue(searchCriteria, "lang_code", searchArgs["searchLang"])
-            searchCriteria["lang_code"] = {'$eq': searchArgs["searchLang"]}
 
         print("Info: Mongo search criteria: ", searchCriteria)
         lsTweets = list(tweetCollection.find(searchCriteria).limit(maxResults))

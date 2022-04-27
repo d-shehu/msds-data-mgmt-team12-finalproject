@@ -48,7 +48,7 @@
                         <p style="margin-left: 20px; text-align: left;">
                             <!-- Replace with dynamically created drop down for the language-->
                             <select name="searchLanguage" id="searchLanguage">
-                                <option value="en">English</option>
+                                <option value="ANY">ANY</option>
                             </select>
                         </p>
                     </div>
@@ -56,21 +56,20 @@
                     <button class="accordion">Place</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <!-- Replace with drop down for the language-->
                             Type: <select name="searchPlaceType" id="searchPlaceType">
-                                <option value="NA">ANY</option>
+                                <option value="ANY">ANY</option>
                             </select><br>
                             Country: <select name="searchPlaceCountry" id="searchPlaceCountry">
-                                <option value="NA">ANY</option>
+                                <option value="ANY">ANY</option>
                             </select><br>
-                            Name: <input id="searchPlaceName" class="textInput" type="text" name="searchPlaceName" placeholder="New York" />
+                            Name: <input id="searchPlaceName" class="textInput" type="text" name="searchPlaceName" placeholder="New York" value=""/>
+                            Enabled: <input type="checkbox" id="searchPlace" name="searchPlace">
                         </p>
                     </div>
 
                     <button class="accordion">Time Frame</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <!-- Replace with drop down for the language-->
                             Start Date: <input id="searchStartDate" name="searchStartDate" type="date"><br>
                             End Date: <input id="searchEndDate" name="searchEndDate" type="date"><br>
                             Enabled: <input type="checkbox" id="searchTimeFrame" name="searchTimeFrame">
@@ -80,7 +79,6 @@
                     <button class="accordion">Other</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <!-- Replace with drop down for the language-->
                             Max Results: <input type="number" min="50" max="60000" id="maxResults" 
                                                 name="maxResults" placeholder="30" value="30">
                         </p>
@@ -229,6 +227,7 @@
             var searchPlaceTypeDropdown = document.getElementById('searchPlaceType')
             var searchPlaceCountryDropdown = document.getElementById('searchPlaceCountry')
             var searchPlaceNameInput = document.getElementById('searchPlaceName')
+            var searchPlaceCheckbox = document.getElementById('searchPlace')
             
 
             // Insert button handle
@@ -285,7 +284,7 @@
                         }
                         // Add default option
                         var option = document.createElement("option");
-                        option.value = "NA"
+                        option.value = "ANY"
                         option.text = "ANY"
                         searchLanguageDropdown.appendChild(option)
 
@@ -321,7 +320,7 @@
                             }
                             // Add default option
                             var option = document.createElement("option");
-                            option.value = "NA"
+                            option.value = "ANY"
                             option.text = "ANY"
                             searchPlaceTypeDropdown.appendChild(option)
 
@@ -357,7 +356,7 @@
                             }
                             // Add default option
                             var option = document.createElement("option");
-                            option.value = "NA"
+                            option.value = "ANY"
                             option.text = "ANY"
                             searchPlaceCountryDropdown.appendChild(option)
 
@@ -427,13 +426,29 @@
                         url = url + "&peopleSearchMode=mention"
                     }
                 }
+                // Place Search
+                if(searchPlaceCheckbox.checked){
+                    console.log("Adding search by place")
+                    console.log(searchPlaceTypeDropdown.value)
+                    console.log(searchPlaceNameInput.value)
+                    console.log(searchPlaceCountryDropdown.value)
+                    if(searchPlaceTypeDropdown.value != "ANY"){
+                        url = url + "&placeSearchType=" + searchPlaceTypeDropdown.value
+                    }
+                    if(searchPlaceNameInput.value != ""){
+                        url = url + "&placeSearchName=" + searchPlaceNameInput.value
+                    }
+                    if(searchPlaceCountryDropdown.value != "ANY"){
+                        url = url + "&placeSearchCountry=" + searchPlaceCountryDropdown.value
+                    }
+                }
                 // Date Range
                 if(searchTimeFrameCheckbox.checked){
                     url = url + "&startDate=" + searchStartDateInput.value
                     url = url + "&endDate=" + searchEndDateInput.value
                 }
                 // Language
-                if(searchLanguageDropdown.value != "NA"){
+                if(searchLanguageDropdown.value != "ANY"){
                     url = url + "&searchLang=" + searchLanguageDropdown.value
                 }
 

@@ -331,3 +331,35 @@ def fnGetAllPlaceCountries(dbConnection):
         print("Info: error while fetching place countries from the database")
 
     return lsPlaceCountries
+
+
+def fnGetMatchingPlaceIDs(dbConnection, sType, sName, sCountry):
+    lsPlaceIDs=[]
+
+    try:
+        with dbConnection.cursor() as curs:
+            sClause = ""
+            if sType is not None:
+                sClause = sClause + " type='{0}'".format(sType)
+
+            if sName is not None:
+                if sClause != "":
+                    sClause = sClause + " and"
+                sClause = sClause + " name='{0}'".format(sName)
+
+            if sCountry is not None:
+                if sClause != "":
+                    sClause = sClause + " and"
+                sClause = sClause + " country='{0}'".format(sCountry)
+
+            curs.execute("SELECT original_id FROM place where" + sClause)
+
+            # Grab them all
+            countryRecs = curs.fetchall()
+            for countryRec in countryRecs:
+                lsPlaceIDs.append(countryRec[0])
+
+    except Exception as e:
+        print("Info: error while fetching places from the database matching {0}, {1}, {2}: ".format(sType, sName,sCountry), e)
+
+    return lsPlaceIDs

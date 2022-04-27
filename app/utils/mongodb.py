@@ -102,5 +102,8 @@ def fnSearchRange(searchCriteria, sField, sStart, sEnd):
 def fnSearchExactValue(searchCriteria, sField, sValue):
     searchCriteria[sField] = { "$eq": sValue }
 
+def fnSearchIn(searchCriteria, sField, lsValues):
+    searchCriteria[sField] = { "$in": lsValues }
+
 def fnDisconnect(dbConnection):
     dbConnection.close()
