@@ -59,12 +59,18 @@ def fnThreadUpdates():
 def fnRoot():
     return render_template("index.html")
 
-def fnGetTextSearchArgs(args):
+def fnGetTextSearchArgs(args, pgConn):
+    # Text(tweet) search
     maxResults=int(request.args.get("maxResults"))
     searchText=request.args.get("searchText")
     sSearchMode=request.args.get("searchMode")
+    # Hashtag
     hashtagSearchText=request.args.get("hashtagText")
     sHashtagSearchMode=request.args.get("hashtagSearchMode")
+    # People
+    peopleSearchText=request.args.get("peopleText")
+    sPeopleSearchMode=request.args.get("peopleSearchMode")
+    # Date & Misc
     searchStartDate=request.args.get("startDate")
     searchEndDate=request.args.get("endDate")
     searchLanguage=request.args.get("searchLang")
@@ -86,12 +92,25 @@ def fnGetTextSearchArgs(args):
     # Copy paste logic for hashtag search arguments
     if hashtagSearchText is not None and sHashtagSearchMode is not None:
         hashtagSearchMode = utils.fnGetSearchMode(sHashtagSearchMode)
-        hashtagSearchTextModified = utils.fnGetSearchTags(hashtagSearchText, sHashtagSearchMode)
+        hashtagSearchTextModified = utils.fnGetSearchTags(hashtagSearchText)
 
-        print("Info: Searching for text {0} using mode {1}".format(hashtagSearchTextModified, hashtagSearchMode))
+        print("Info: Searching for hashtags {0} using mode {1}".format(hashtagSearchTextModified, hashtagSearchMode))
         searchArgs["searchHashtag"] = hashtagSearchTextModified
         searchArgs["searchHashtagMode"] = hashtagSearchMode
-    
+
+    # People search
+    if peopleSearchText is not None and sPeopleSearchMode is not None:
+        peopleSearchMode = utils.fnGetPeopleSearchMode(sPeopleSearchMode)
+        peopleSearchTextModified = utils.fnGetSearchTags(peopleSearchText)
+
+        # Convert to IDs
+        if peopleSearchMode == utils.PeopleSearchMode.FROM or peopleSearchMode == utils.PeopleSearchMode.REPLY:
+            peopleSearchTextModified = user.fnGetIDsFromScreenNames(peopleSearchTextModified, pgConn)
+
+        print("Info: Searching for people {0} using mode {1}".format(peopleSearchTextModified, peopleSearchMode))
+        searchArgs["searchPeople"] = peopleSearchTextModified
+        searchArgs["searchPeopleMode"] = peopleSearchMode
+
     # Filter on this date range if one is provided
     if searchStartDate is not None and searchEndDate is not None:
         searchArgs["startDate"] = searchStartDate
@@ -109,10 +128,10 @@ def fnSearch():
     
     ret = None
     try:
-        searchArgs = fnGetTextSearchArgs(request.args)
-
         mongoConnection = mongodb.fnConnect()
         pgConnection = pgdb.fnConnect()
+
+        searchArgs = fnGetTextSearchArgs(request.args, pgConnection)
 
         print("Searching tweets ...")
         lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)

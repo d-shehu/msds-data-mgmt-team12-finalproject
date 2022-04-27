@@ -43,6 +43,10 @@ def fnProcessTweets(record, userData):
         if "in_reply_to_status_id" in record:
             inReplyToStatusID = record["in_reply_to_status_id"]
 
+        inReplyToUserID = None
+        if "in_reply_to_user_id" in record:
+            inReplyToUserID = record["in_reply_to_user_id"]
+
         placeID = None
         if "place" in record and record["place"] is not None:
             placeID = meta.fnProcessPlace(record["place"], userData)
@@ -67,6 +71,7 @@ def fnProcessTweets(record, userData):
             "reply_to_tweet_id":    inReplyToStatusID,
             "quote_tweet_id":       quotedStatusID,
             "retweet_id":           retweetID,
+            "reply_to_user_id":     inReplyToUserID,
             # Tweet stats
             "quote_count":          record["quote_count"],
             "reply_count":          record["reply_count"],
@@ -157,17 +162,24 @@ def fnGetFiltered(dbConnection, searchArgs):
         if "searchText" in searchArgs:
             print("Info: Mongo Search Filter is ", searchArgs["searchText"])
             mongodb.fnSearchText(searchCriteria, "text", searchArgs["searchText"])
-        # This is a bit more complex. Search hashtag in collection to get the ids
-        # then do a search
+
+        # Similar to text search but syntax is a bit different. See Mongo class
         if "searchHashtag" in searchArgs:
             print("Info: Mongo Tag Filter is ", searchArgs["searchHashtag"]) 
             mongodb.fnSearchTags(searchCriteria, "hashtags", searchArgs["searchHashtag"], 
                                     searchArgs["searchHashtagMode"])
+
+        # Similar to above but with people (3 modes)
+        if "searchPeople" in searchArgs:
+            print("Info: Mongo People Filter is ", searchArgs["searchPeople"]) 
+            mongodb.fnSearchPeople(searchCriteria, searchArgs["searchPeople"], searchArgs["searchPeopleMode"])
+
         # Modify search criteria to include dates?
         if "startDate" in searchArgs and "endDate" in searchArgs:
             print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
             print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
             mongodb.fnSearchRange(searchCriteria, "created_at", searchArgs["startDate"], searchArgs["endDate"])
+        
         # Search criteria includes language
         if "searchLang" in searchArgs:
             print("Info: Searching for Language", searchArgs["searchLang"])

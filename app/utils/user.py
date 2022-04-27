@@ -51,3 +51,15 @@ def fnGetScreenNameFromID(dbConnection, id):
         print("Error while fetching screenname from id", id)
 
     return screenName
+
+def fnGetIDsFromScreenNames(lsScreenNames, dbConnection):
+
+    lsIDs = []
+
+    for screenName in lsScreenNames:
+        id = pgdb.fnGetIDFromScreenName(dbConnection, screenName)
+        if(id is not None):
+            lsIDs.append(id)
+
+    return lsIDs
+

@@ -113,6 +113,22 @@ def fnClearData(dbConnection):
     else:
         print("DB connection is not valid")
 
+def fnGetIDFromScreenName(dbConnection, screenName):
+    outID=None
+
+    try:
+        with dbConnection.cursor() as curs:
+            curs.execute("SELECT id FROM user_ WHERE screen_name='{0}'".format(screenName))
+
+            # Assuming screenname is unique as defined in the schema
+            idRec = curs.fetchone()
+            outID = idRec[0]
+            
+    except Exception as e:
+        print("Info: user with screen name not found or field was missing: ", screenName)
+
+    return outID
+
 def fnGetUserFromID(dbConnection, id):
     outUser=None
         

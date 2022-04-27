@@ -6,6 +6,12 @@ class SearchMode(enum.Enum):
     ANY     = 3
     UND     = 4
 
+class PeopleSearchMode(enum.Enum):
+    FROM        = 1
+    REPLY       = 2
+    MENTION     = 3
+    UND         = 4
+
 # Get enum from text
 def fnGetSearchMode(sSearchMode):
 
@@ -18,6 +24,20 @@ def fnGetSearchMode(sSearchMode):
         ret = SearchMode.ANY
     else:
         print("Error: unexpected search mode")
+    
+    return ret
+
+def fnGetPeopleSearchMode(sSearchMode):
+
+    ret = PeopleSearchMode.UND
+    if(sSearchMode == "from"):
+        ret = PeopleSearchMode.FROM
+    elif(sSearchMode == "reply"):
+        ret = PeopleSearchMode.REPLY
+    elif(sSearchMode == "mention"):
+        ret = PeopleSearchMode.MENTION
+    else:
+        print("Error: unexpected people search mode")
     
     return ret
 
@@ -45,7 +65,7 @@ def fnGetSearchString(searchText, searchMode):
 
     return sModified
 
-def fnGetSearchTags(sSearchText, searchMode):
+def fnGetSearchTags(sSearchText):
     # Always tokenize the search string 
     lsTokenList = sSearchText.split()
 

@@ -78,6 +78,24 @@ def fnSearchTags(searchCriteria, sField, lsTags, searchMode):
     else:
         print("Error: unknown search mode:", searchMode)
 
+# TODO: the Mongo code shouldn't know about the format of the data
+# Ideally this can be pushed to the tweet class and/or otherwise
+# refactored.
+def fnSearchPeople(searchCriteria, lsPeople, searchMode):
+    # All tags in this order
+    # Must be an ID
+    if searchMode == utils.PeopleSearchMode.FROM:
+        searchCriteria["creator_id"] = { "$in": lsPeople }
+    # Every tags but in any order in text
+    # Must be an ID
+    elif searchMode == utils.PeopleSearchMode.REPLY:
+        searchCriteria["reply_to_user_id"] = { "$in": lsPeople }
+    # Should be text
+    elif searchMode == utils.PeopleSearchMode.MENTION:
+        searchCriteria["user_mentions"] = { "$in": lsPeople }
+    else:
+        print("Error: unknown search mode:", searchMode)
+
 def fnSearchRange(searchCriteria, sField, sStart, sEnd):
     searchCriteria[sField] = { "$lt": sEnd, "$gte": sStart }
 

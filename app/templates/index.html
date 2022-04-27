@@ -35,11 +35,11 @@
                     <button class="accordion">People</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            <input class="textInput" type="text" name="inputMatchExact" placeholder="@Person" />
+                            <input id="peopleText" class="textInput" type="text" name="peopleText" placeholder="John Jane..." />
                             <br><br>
-                            From <input type="radio" name="peopleSearchMode" value="From" checked>
-                            Reply <input type="radio" name="peopleSearchMode" value="InReply">
-                            Mention <input type="radio" name="peopleSearchMode" value="Mention">
+                            From <input id="peopleSearchModeFrom" type="radio" name="peopleSearchMode" value="From" checked>
+                            Reply <input id="peopleSearchModeReply" type="radio" name="peopleSearchMode" value="Reply">
+                            Mention <input id="peopleSearchModeMention" type="radio" name="peopleSearchMode" value="Mention">
                         </p>
                     </div>
 
@@ -214,6 +214,10 @@
             var hashtagTextInput = document.getElementById("hashtagText")
             var hashtagTextSearchModeExact = document.getElementById("hashtagSearchModeExact")
             var hashtagTextSearchModeAll = document.getElementById("hashtagSearchModeAll")
+            // People
+            var peopleTextInput = document.getElementById("peopleText")
+            var peopleTextSearchModeFrom = document.getElementById("peopleSearchModeFrom")
+            var peopleTextSearchModeReply = document.getElementById("peopleSearchModeReply")
             // Results
             var maxResultsInput = document.getElementById("maxResults")
             // Date
@@ -390,6 +394,7 @@
                         url = url + "&searchMode=any"
                     }
                 }
+                // Handle hashtag search
                 if (hashtagTextInput.value != "") {
                     //TODO: need to handle special characters
                     url = url + "&hashtagText=" + hashtagTextInput.value
@@ -402,6 +407,24 @@
                     }
                     else {
                         url = url + "&hashtagSearchMode=any"
+                    }
+                }
+                // Handle people search
+                if (peopleTextInput.value != "") {
+                    //TODO: need to handle special characters
+                    url = url + "&peopleText=" + peopleTextInput.value
+
+                    // Creator
+                    if (peopleSearchModeFrom.checked) {
+                        url = url + "&peopleSearchMode=from"
+                    }
+                    // Reply
+                    else if (peopleSearchModeReply.checked) {
+                        url = url + "&peopleSearchMode=reply"
+                    }
+                    // Mention (tags/entities)
+                    else {
+                        url = url + "&peopleSearchMode=mention"
                     }
                 }
                 // Date Range
@@ -429,11 +452,11 @@
                 ajax: { url: "/search?maxResults=" + maxResultsInput.value, type: "GET" },
                 // add column definitions to map your json to the table
                 columns: [
-                    { data: "tweet_id" },
-                    { data: "created_at" },
-                    { data: "creator_screen_name" },
-                    { data: "text" },
-                    { data: "hashtags" }
+                    { data: "tweet_id", width: "10%" },
+                    { data: "created_at", width: "10%" },
+                    { data: "creator_screen_name", width: "10%" },
+                    { data: "text", width: "50%" },
+                    { data: "hashtags", width: "20%" }
                 ]
             });
 
