@@ -54,6 +54,13 @@ def fnProcessTweets(record, userData):
         # Grab the creator
         creatorID = user.fnProcessUser(record["user"], userData)
 
+        if (record["quote_count"] != 0 or record["reply_count"] != 0 or 
+            record["retweet_count"] != 0 or record["favorite_count"] != 0):
+            print("Non zero count")
+            print(record)
+            print("Counts:", record["quote_count"], record["reply_count"],
+                    record["retweet_count"], record["favorite_count"])
+
         # Language code is 1:1 (not sparse) it seems
         langCode = record["lang"]
         meta.fnInsertLanguage(langCode, userData)
@@ -73,10 +80,10 @@ def fnProcessTweets(record, userData):
             "retweet_id":           retweetID,
             "reply_to_user_id":     inReplyToUserID,
             # Tweet stats
-            "quote_count":          record["quote_count"],
-            "reply_count":          record["reply_count"],
-            "retweet_count":        record["retweet_count"],
-            "favorite_count":       record["favorite_count"],
+            "quote_count":          int(record["quote_count"]),
+            "reply_count":          int(record["reply_count"]),
+            "retweet_count":        int(record["retweet_count"]),
+            "favorite_count":       int(record["favorite_count"]),
             # Tags
             "hashtags":             lsTags,
             "user_mentions":        lsMentions,
@@ -146,6 +153,8 @@ def fnProcessExtendedEntities(record, userData):
         print("Error while parsing entities JSON records from memory", e)
   
 
+
+
 def fnGetFiltered(dbConnection, searchArgs):
     lsTweets = []
 
@@ -192,8 +201,17 @@ def fnGetFiltered(dbConnection, searchArgs):
             mongodb.fnSearchExactValue(searchCriteria, "lang_code", searchArgs["searchLang"])
 
         print("Info: Mongo search criteria: ", searchCriteria)
-        lsTweets = list(tweetCollection.find(searchCriteria).limit(maxResults))
+        # Only returning those fields needed by the search app to reduce the amount of data
+        # that needs to be fetched and sent over the "wire".
+        tweetResults = tweetCollection.find(searchCriteria, 
+                            {"tweet_id", "created_at", "creator_id", "text", "hashtags"})
 
+        if "displayOrder" in searchArgs:
+            print("Info: applying display order:", searchArgs["displayOrder"])
+            tweetResults = mongodb.fnApplyDisplayOrder(tweetResults, searchArgs["displayOrder"])
+        
+        # Extract data from iterator and limit to max results requested by user app
+        lsTweets = list(tweetResults.limit(maxResults))
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)
 

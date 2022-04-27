@@ -61,7 +61,6 @@ def fnRoot():
 
 def fnGetTextSearchArgs(args, pgConn):
     # Text(tweet) search
-    maxResults=int(request.args.get("maxResults"))
     searchText=request.args.get("searchText")
     sSearchMode=request.args.get("searchMode")
     # Hashtag
@@ -78,11 +77,18 @@ def fnGetTextSearchArgs(args, pgConn):
     searchStartDate=request.args.get("startDate")
     searchEndDate=request.args.get("endDate")
     searchLanguage=request.args.get("searchLang")
+    # Other
+    maxResults=int(request.args.get("maxResults"))
+    sDisplayOrder=request.args.get("displayOrder")
 
     # No search parameters defined
     searchArgs = {}
 
+    # Results
     searchArgs["maxResults"] = maxResults
+    if sDisplayOrder is not None:
+        displayOrder = utils.fnGetDisplayOrder(sDisplayOrder)
+        searchArgs["displayOrder"] = displayOrder
 
     # User may not have specified search text
     if searchText is not None and sSearchMode is not None:

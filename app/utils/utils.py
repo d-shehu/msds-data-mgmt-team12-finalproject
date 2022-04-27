@@ -1,4 +1,6 @@
 import enum
+from tkinter import UNDERLINE
+from unittest import load_tests
  
 class SearchMode(enum.Enum):
     EXACT   = 1
@@ -12,6 +14,13 @@ class PeopleSearchMode(enum.Enum):
     MENTION     = 3
     UND         = 4
 
+class DisplayOrder(enum.Enum):
+    LATEST          = 1
+    POPULAR         = 2
+    AUTHORITATIVE   = 3
+    INFLUENCE       = 4
+    UND             = 5
+
 # Get enum from text
 def fnGetSearchMode(sSearchMode):
 
@@ -23,7 +32,7 @@ def fnGetSearchMode(sSearchMode):
     elif(sSearchMode == "any"):
         ret = SearchMode.ANY
     else:
-        print("Error: unexpected search mode")
+        print("Error: unexpected search mode", sSearchMode)
     
     return ret
 
@@ -37,7 +46,23 @@ def fnGetPeopleSearchMode(sSearchMode):
     elif(sSearchMode == "mention"):
         ret = PeopleSearchMode.MENTION
     else:
-        print("Error: unexpected people search mode")
+        print("Error: unexpected people search mode", sSearchMode)
+    
+    return ret
+
+def fnGetDisplayOrder(sDisplayOrder):
+
+    ret = DisplayOrder.UND
+    if (sDisplayOrder == "latest"):
+        ret = DisplayOrder.LATEST
+    elif (sDisplayOrder == "popular"):
+        ret = DisplayOrder.POPULAR
+    elif (sDisplayOrder == "authoritative"):
+        ret = DisplayOrder.AUTHORITATIVE
+    elif (sDisplayOrder == "influence"):
+        ret = DisplayOrder.INFLUENCE
+    else:
+        print("Error: unexpected display order", sDisplayOrder)
     
     return ret
 

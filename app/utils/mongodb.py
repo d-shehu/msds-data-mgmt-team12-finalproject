@@ -1,4 +1,5 @@
 
+from ctypes import util
 from dataclasses import replace
 import os
 import pymongo
@@ -104,6 +105,30 @@ def fnSearchExactValue(searchCriteria, sField, sValue):
 
 def fnSearchIn(searchCriteria, sField, lsValues):
     searchCriteria[sField] = { "$in": lsValues }
+
+def fnApplyDisplayOrder(tweetResults, displayOrder):
+
+    ret = tweetResults
+
+    if displayOrder == utils.DisplayOrder.LATEST:
+        tweetResults = tweetResults.sort([("created_at", pymongo.DESCENDING)])
+
+    elif displayOrder == utils.DisplayOrder.POPULAR:
+        # TODO: might be interesting to sort by composite of retweet, favorite
+        tweetResults = tweetResults.sort([("retweet_count", pymongo.DESCENDING), 
+                            ("favorite_count", pymongo.DESCENDING)])
+    elif displayOrder == utils.DisplayOrder.AUTHORITATIVE:
+        # TODO: this could also be on how authoritative the creator is
+        tweetResults = tweetResults.sort([("quote_count", pymongo.DESCENDING)])
+
+    elif displayOrder == utils.DisplayOrder.INFLUENCE:
+        # TODO: ditto, might be interesting to get the author's influence
+        tweetResults = tweetResults.sort([("favorite_count", pymongo.DESCENDING)])
+    
+    else:
+        print("Error: unexpected display order", displayOrder)
+
+    return ret
 
 def fnDisconnect(dbConnection):
     dbConnection.close()
