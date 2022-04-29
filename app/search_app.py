@@ -9,6 +9,7 @@ from datetime import datetime
 # User library
 from utils import meta
 from utils import pgdb
+from utils import redis
 from utils import mongodb # TODO: hide this from top level code
 from utils import tweet
 from utils import ingest_data
@@ -157,20 +158,39 @@ def fnSearch():
         mongoConnection = mongodb.fnConnect()
         pgConnection = pgdb.fnConnect()
 
+        maxSearchesCached=int(request.args.get("maxSearchesCached"))
+        searchCacheExpiry=int(request.args.get("searchCacheExpiry"))
+
+        redisData = redis.fnConnect(maxSearchesCached, searchCacheExpiry)
+
         searchArgs = fnGetTextSearchArgs(request.args, pgConnection)
 
         print("Searching tweets ...")
-        lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)
+        searchArgsAsKey = json.dumps(searchArgs)
+        # Cached results might be a little stale. Tradeoff between seeing
+        # tweet results immediately
+        cachedRes = redis.fnFetchSearchResults(redisData, searchArgsAsKey)
+        if cachedRes is None:
+            lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)
 
-        # Replace user ID with screen name
-        for aTweet in lsTweets:
-            screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
-            aTweet["creator_screen_name"] = screen_name
-            fnConvertTweetIDs(aTweet)
+            # Replace user ID with screen name
+            for aTweet in lsTweets:
+                screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
+                aTweet["creator_screen_name"] = screen_name
+                fnConvertTweetIDs(aTweet)
 
-        #print("Data dump:", lsTweets)
-
-        ret = {"data": json.loads(json_util.dumps(lsTweets)) }
+            jsonTweets = json_util.dumps(lsTweets)
+            ret = {"data": json.loads(jsonTweets) }
+            
+            # Only cache if there were some results
+            if len(lsTweets) > 0:
+                redis.fnCacheSearchResults(redisData, searchArgsAsKey, jsonTweets)
+            print("Fetch from db")
+        else:
+            #print("Data dump:", lsTweets)
+            ret = {"data": json.loads(cachedRes) }
+            print("Fetch from cache")
+        
 
         if(mongoConnection is not None):
             mongodb.fnDisconnect(mongoConnection)
@@ -230,13 +250,14 @@ def fnClearDB():
     global readerData
     # Prevent clearing of DB while data is being inserted
     with insertLock:
-        print("Reader data is", readerData)
-        okToClear = readerData is not None and not readerData["isIngesting"]
+        okToClear = readerData is None or not readerData["isIngesting"]
         if(okToClear):
-            ingest_data.fnClearData(readerData)
+            ingest_data.fnClearData()
         elif readerData is not None:
             # TODO: return meaningful error. Need 403 and possibly base.html template
             print("Error: currently ingesting data. Please wait ...")
+
+        socketio.emit('update', {'progress': 0, 'processed': 0})
 
     return render_template("index.html")
 
@@ -257,6 +278,8 @@ def fnStop():
                 print("Error while stopping job: ", error)
     # Send stop update
     socketio.emit('stopped')
+
+    return render_template("index.html")
 
 @app.route("/tweet")
 def fnGetTweetFromID():

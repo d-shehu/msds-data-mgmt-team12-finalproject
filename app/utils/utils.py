@@ -2,24 +2,25 @@ import enum
 from tkinter import UNDERLINE
 from unittest import load_tests
  
-class SearchMode(enum.Enum):
-    EXACT   = 1
-    ALL     = 2
-    ANY     = 3
-    UND     = 4
+ # String values so they encode in JSON without error
+class SearchMode(str, enum.Enum):
+    EXACT   = "1"
+    ALL     = "2"
+    ANY     = "3"
+    UND     = "4"
 
-class PeopleSearchMode(enum.Enum):
-    FROM        = 1
-    REPLY       = 2
-    MENTION     = 3
-    UND         = 4
+class PeopleSearchMode(str, enum.Enum):
+    FROM        = "1"
+    REPLY       = "2"
+    MENTION     = "3"
+    UND         = "4"
 
-class DisplayOrder(enum.Enum):
-    LATEST          = 1
-    POPULAR         = 2
-    AUTHORITATIVE   = 3
-    INFLUENCE       = 4
-    UND             = 5
+class DisplayOrder(str, enum.Enum):
+    LATEST          = "1"
+    POPULAR         = "2"
+    AUTHORITATIVE   = "3"
+    INFLUENCE       = "4"
+    UND             = "5"
 
 # Get enum from text
 def fnGetSearchMode(sSearchMode):

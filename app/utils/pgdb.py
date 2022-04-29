@@ -88,31 +88,31 @@ def fnInitSchema(dbConnection):
                             """)
                 
                 
-                # Create the stats table for tracking counts and other metrics
-                curs.execute("""DROP TABLE IF EXISTS stats CASCADE;
-                                CREATE TABLE Stats(
-                                    numTweets BIGINT,
-                                    numRetweets BIGINT
-                                );
-                            """)
+                # TODO: create the stats table for tracking counts and other metrics
+                # For the final report this supplements the analytics notebooks
         except Exception as e:
             print("Error: unable to initialize the schema", e)
     else:
         print("DB connection is not valid")
 
-def fnClearData(dbConnection):
-    if dbConnection != None:
-        try:
-            # Need to create the cursor for executing any statement
-            # TODO: Location will be refactored to make it a fk to place
-            with dbConnection.cursor() as curs:
-                # Delete the non-meta data
-                curs.execute("DELETE * from user_;")
+def fnClearData():
 
-        except Exception as e:
-            print("Error: unable to initialize the schema", e)
-    else:
-        print("DB connection is not valid")
+    try:
+        dbConnection = fnConnect()
+
+        # Need to create the cursor for executing any statement
+        # TODO: Location will be refactored to make it a fk to place
+        with dbConnection.cursor() as curs:
+            # Delete the non-meta data
+            curs.execute("DELETE from language;")
+            curs.execute("DELETE from place;")
+            curs.execute("DELETE from user_;")
+                
+        if dbConnection != None:
+            fnDisconnect(dbConnection)
+
+    except Exception as e:
+        print("Error while trying to clear Postgres database:", e)
 
 def fnGetIDFromScreenName(dbConnection, screenName):
     outID=None

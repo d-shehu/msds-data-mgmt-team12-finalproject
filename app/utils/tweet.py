@@ -264,7 +264,7 @@ def fnGetFiltered(dbConnection, searchArgs):
         # Extract data from iterator and limit to max results requested by user app
         lsTweets = list(tweetResults.limit(maxResults))
 
-        print(lsTweets)
+        #print(lsTweets)
 
         # Convert dates to string
         for tweet in lsTweets:

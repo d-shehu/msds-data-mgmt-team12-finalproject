@@ -35,7 +35,7 @@ def fnInitDB():
         tweetDB = dbConnection[fnGetTweetDBName()]
         # Clear the collections assuming they exist. Otherwise they get
         # created the next time we grab them
-        tweetDB[fnGetTweetCollection()].drop()
+        tweetDB.drop_collection(fnGetTweetCollection())
 
         # Create some obvious indexes
         tweetDB[fnGetTweetCollection()].create_index("tweet_id")

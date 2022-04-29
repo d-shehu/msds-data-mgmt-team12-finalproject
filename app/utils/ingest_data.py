@@ -134,19 +134,13 @@ def fnReadThreaded(readerData):
     
     readerData["isIngesting"] = False
 
-def fnClearData(readerData):
-    #TODO: need to clear all databases (Mongo, Postgres and Redis)
-    print("Error: not yet implemented")
+def fnClearData():
     try:
-        mongoConnection = readerData["mongoConn"] 
-        pgConnection = readerData["pgConn"]
-
-        mongodb.fnCreateTweetDB(mongoConnection, True)
-        pgdb.fnClearData(pgConnection)
+        mongodb.fnInitDB()
+        pgdb.fnClearData()
 
     except Exception as error:
         print("Error while trying to reset databases")
-
         
 def fnGetReaderData(sampleFilename, insertDelay):
     sampleDataFilepath = os.path.join(fnGetDataDir(), sampleFilename)
