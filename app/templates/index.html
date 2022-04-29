@@ -505,10 +505,10 @@
                             outRec = "<div style='max-width: 400px, overflow-wrap: break-word; word-break: break-word;'>" + 
                                 text + "<br><br>"
 
-                            if (row.retweet_id != null){
-                                outRec = outRec + "<a href='#' onclick='fnLoadTweet(\"" + row.retweet_id + "\")'>Original Tweet" + row.retweet_id + "</a>"
+                            if (row.retweet_id != "None"){
+                                outRec = outRec + "<a href='#' onclick='fnLoadTweet(\"" + row.retweet_id + "\")'>Original Tweet</a>"
                             }
-                            if (row.reply_to_tweet_id != null){
+                            if (row.reply_to_tweet_id != "None"){
                                 outRec = outRec + "&nbsp;&nbsp;<a href='#' onclick='fnLoadTweet(" + row.reply_to_tweet_id + ")'>Reply to Tweet</a>"
                             }
 

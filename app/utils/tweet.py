@@ -198,7 +198,12 @@ def fnGetTweet(dbConnection, id):
     tweetCollection = mongodb.fnGetCollections(dbConnection)
 
     # Fetch based on original id
-    return list(tweetCollection.find({"tweet_id": id}))
+    lsTweets = list(tweetCollection.find({"tweet_id": id}))
+
+    for tweet in lsTweets:
+        tweet["created_at"] = tweet["created_at"].strftime("%m/%d/%Y, %H:%M:%S")
+
+    return lsTweets
 
 def fnGetFiltered(dbConnection, searchArgs):
     lsTweets = []

@@ -266,12 +266,19 @@ def fnGetTweetFromID():
         tweetID=int(request.args.get("tweet_id"))
 
         mongoConnection = mongodb.fnConnect()
+        pgConnection = pgdb.fnConnect()
+
         lsTweets = tweet.fnGetTweet(mongoConnection, tweetID)
         for aTweet in lsTweets:
+            screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
+            aTweet["creator_screen_name"] = screen_name
             fnConvertTweetIDs(aTweet)
 
         if(mongoConnection is not None):
             mongodb.fnDisconnect(mongoConnection)
+
+        if(pgConnection is not None):
+            pgdb.fnDisconnect(pgConnection)
 
         ret = {"data": json.loads(json_util.dumps(lsTweets)) }
 
