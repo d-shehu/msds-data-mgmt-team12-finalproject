@@ -42,6 +42,8 @@ docker run -it --rm --name=final_project_search_app \
         --env PG_DB_HOSTNAME=t12_final_project_pgdb \
         --env PG_DB_USERNAME=postgres \
         --env PG_DB_PASSWORD=$T12_FINAL_PROJECT_DB_PASS \
+        --env REDIS_DB_HOSTNAME=t12_final_project_redisdb \
+        --env REDIS_DB_PASSWORD=$T12_FINAL_PROJECT_DB_PASS \
         --volume $runtimeDir/input:/data \
         --volume $scriptDir/templates:/app/templates \
         --volume $scriptDir/static:/app/static \

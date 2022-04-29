@@ -4,6 +4,7 @@ from bson import json_util
 import json
 
 import threading
+from datetime import datetime
 
 # User library
 from utils import meta
@@ -127,10 +128,12 @@ def fnGetTextSearchArgs(args, pgConn):
         lsPlaceIDs = meta.fnGetMatchingPlaceIDs(placeSearchType, placeSearchName, placeSearchCountry, pgConn)
         searchArgs["searchPlace"] = lsPlaceIDs
 
-    # Filter on this date range if one is provided
+    # Filter on this date(time) range if one is provided
     if searchStartDate is not None and searchEndDate is not None:
-        searchArgs["startDate"] = searchStartDate
-        searchArgs["endDate"] = searchEndDate
+        print("Searching between {0} and {1}".format(searchStartDate, searchEndDate))
+        # Store as Python datetime and not strings
+        searchArgs["startDate"] = datetime.strptime(searchStartDate, '%Y-%m-%dT%H:%M')
+        searchArgs["endDate"] = datetime.strptime(searchEndDate, '%Y-%m-%dT%H:%M')
 
     # Filter on language if one has been provided
     if searchLanguage is not None:
@@ -139,6 +142,13 @@ def fnGetTextSearchArgs(args, pgConn):
 
     return searchArgs
 
+def fnConvertTweetIDs(tweet):
+    tweet["creator_id"] = str(tweet["creator_id"])
+    tweet["reply_to_tweet_id"] = str(tweet["reply_to_tweet_id"])
+    tweet["reply_to_user_id"] = str(tweet["reply_to_user_id"])
+    tweet["retweet_id"] = str(tweet["retweet_id"])
+    tweet["tweet_id"] = str(tweet["tweet_id"])
+    
 @app.route("/search")
 def fnSearch():
     
@@ -156,6 +166,7 @@ def fnSearch():
         for aTweet in lsTweets:
             screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
             aTweet["creator_screen_name"] = screen_name
+            fnConvertTweetIDs(aTweet)
 
         #print("Data dump:", lsTweets)
 
@@ -196,7 +207,6 @@ def fnInsert():
                     insertDelayArg=int(request.args.get("insertDelay"))
                     print("Info: stream delay is: ", insertDelayArg)
 
-                doStream = False
                 sampleArg=request.args.get("sample")
                 if sampleArg is not None:
                     print("Arguments for insertion are: stream: {0}, delay: {1}, sample: {2}", streamArg, 
@@ -247,6 +257,28 @@ def fnStop():
                 print("Error while stopping job: ", error)
     # Send stop update
     socketio.emit('stopped')
+
+@app.route("/tweet")
+def fnGetTweetFromID():
+    ret = {}
+
+    try:
+        tweetID=int(request.args.get("tweet_id"))
+
+        mongoConnection = mongodb.fnConnect()
+        lsTweets = tweet.fnGetTweet(mongoConnection, tweetID)
+        for aTweet in lsTweets:
+            fnConvertTweetIDs(aTweet)
+
+        if(mongoConnection is not None):
+            mongodb.fnDisconnect(mongoConnection)
+
+        ret = {"data": json.loads(json_util.dumps(lsTweets)) }
+
+    except Exception as e:
+        print("Error: could not fetch tweet due to:", e)
+
+    return ret
 
 @app.route("/languages")
 def fnGetLanguages():

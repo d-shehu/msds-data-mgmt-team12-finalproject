@@ -82,7 +82,8 @@ def fnInitSchema(dbConnection):
                                     friends_count INTEGER,
                                     listed_count INTEGER,
                                     created_at TIMESTAMP,
-                                    lang_code INTEGER
+                                    lang_code INTEGER,
+                                    last_updated_ts BIGINT
                                 );
                             """)
                 
@@ -149,7 +150,8 @@ def fnGetUserFromID(dbConnection, id):
                     "friends_count":    userRec[4],
                     "listed_count":     userRec[5],
                     "created_at":       userRec[6],
-                    "lang_code":        userRec[7]
+                    "lang_code":        userRec[7],
+                    "last_updated_ts":  userRec[8]
                 }
 
     except Exception as e:
@@ -158,23 +160,41 @@ def fnGetUserFromID(dbConnection, id):
     return outUser
 
 def fnInsertUser(dbConnection, id, screenName, location, followerCount, friendsCount, 
-                    listedCount, createdAt, langCode):
+                    listedCount, createdAt, langCode, lastUpdatedTS):
     try:
-        # Only insert if the user hasn't been added before
+        sQuery = ""
+        # If the user exists, let's see if this info is more up to date (counts, screenname)
         dbUser = fnGetUserFromID(dbConnection, id)
         if dbUser is None:
             # TODO: fix language code
-            with dbConnection.cursor() as curs:
-                sQuery = """INSERT INTO user_ (id, screen_name, location, follower_count,
-                            friends_count, listed_count, created_at, lang_code)
-                            VALUES ({0}, '{1}', '{2}', {3}, {4}, {5}, '{6}', {7})
-                        """.format(id, screenName, location, followerCount, friendsCount,
-                        listedCount, createdAt, 0)
+            sQuery = """INSERT INTO user_ (id, screen_name, location, follower_count,
+                        friends_count, listed_count, created_at, lang_code, last_updated_ts)
+                        VALUES ({0}, '{1}', '{2}', {3}, {4}, {5}, '{6}', {7}, {8})
+                    """.format(id, screenName, location, followerCount, friendsCount,
+                    listedCount, createdAt, 0, lastUpdatedTS)
                 
+        # Incoming user is coming from a more recent tweet. If any info has changed
+        # update the record
+        # TODO: check assumption if lang code or created_at can change
+        elif (dbUser["last_updated_ts"] < lastUpdatedTS and 
+                (dbUser["screen_name"] != screenName or dbUser["location"] != location
+                or dbUser["follower_count"] != followerCount or dbUser["friends_count"] != friendsCount
+                or dbUser["listed_count"] != listedCount)):
+            #print("Updating user ", dbUser["screen_name"], "who is now ", screenName)
+            # TODO: fix language code
+            sQuery = """UPDATE user_ SET screen_name='{0}', location='{1}', follower_count={2},
+                                friends_count={3}, listed_count={4}, last_updated_ts={5}
+                        WHERE id={6}        
+                    """.format(screenName, location, followerCount, friendsCount,
+                                listedCount, lastUpdatedTS, id)
+        
+        if sQuery != "":
+            with dbConnection.cursor() as curs:        
                 curs.execute(sQuery)
+            
 
     except Exception as e:
-        print("Error while trying to insert user: ", e)
+        print("Error while trying to insert/update a user: ", e, sQuery)
 
 def fnFindLanguage(dbConnection, langCode):
 
@@ -291,7 +311,7 @@ def fnInsertPlace(dbConnection, originalID, placeType, placeName, country, count
 
                 # Should return the serial (new id)
                 newID = (curs.fetchone())[0]
-                print("New place id is:", newID)
+                #print("New place id is:", newID)
 
     except Exception as e:
         print("Error while trying to insert place: ", e)

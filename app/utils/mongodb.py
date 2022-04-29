@@ -27,9 +27,6 @@ def fnGetTweetDBName():
 def fnGetTweetCollection():
     return "tweet"
 
-def fnGetTagCollection():
-    return "tag"
-
 # This drops the collection if it exists
 def fnInitDB():
     try:
@@ -39,12 +36,12 @@ def fnInitDB():
         # Clear the collections assuming they exist. Otherwise they get
         # created the next time we grab them
         tweetDB[fnGetTweetCollection()].drop()
-        tweetDB[fnGetTagCollection()].drop()
 
         # Create some obvious indexes
         tweetDB[fnGetTweetCollection()].create_index("tweet_id")
         tweetDB[fnGetTweetCollection()].create_index("creator_id")
         tweetDB[fnGetTweetCollection()].create_index("tags")
+        tweetDB[fnGetTweetCollection()].create_index("user_mentions")
         tweetDB[fnGetTweetCollection()].create_index([('text', 'text')])
 
         # Create index in descending order as results sorted from most recent
@@ -57,7 +54,7 @@ def fnInitDB():
 def fnGetCollections(dbConnection):
     try:
         tweetDB = dbConnection[fnGetTweetDBName()]
-        return tweetDB[fnGetTweetCollection()], tweetDB[fnGetTagCollection()]
+        return tweetDB[fnGetTweetCollection()]
     except Exception as error:
         print("Error while creating collection: ", error)
 

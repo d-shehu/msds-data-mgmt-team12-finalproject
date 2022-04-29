@@ -3,26 +3,37 @@ from datetime import datetime
 
 from time import sleep
 
+from bson import json_util
+
 from . import mongodb
 from . import meta
 from . import user
 
+def fnCheckTweet(tweetCollection, id):
+    cur = tweetCollection.find({"tweet_id": { "$eq": id }})
+    return list(cur)
+
 # Since we're not given a retweet ID let's process the status and grab it there.
 def fnProcessRetweet(record, userData):
     try:
-        # TODO: for now let's assume the original tweet is in the feed as well. If this
-        # assumption is bad we can process the status for retweets
-        return record["id"]
+        #print("Retweet record: ", int(record["id"]))
+        fnProcessTweets(record, userData, False)
+        
+        return int(record["id"])
     except Exception as e:
         print("Error while parsing retweet status from memory", e)
 
-def fnProcessTweets(record, userData):
+def fnProcessTweets(record, userData, topLevel=True):
     try:
+        tweetCollection = userData["tweetCollection"]
+        
         # Let's get the required fields
         # ID is given for all tweets and it's always an integer. id_str seems redundant
-        createdAt = datetime.strftime(datetime.strptime(record["created_at"],
-                                        '%a %b %d %H:%M:%S +0000 %Y'), '%Y-%m-%d %H:%M:%S')
+        createdAt = datetime.strptime(record["created_at"],
+                                        '%a %b %d %H:%M:%S +0000 %Y')
+        #createdAt = datetime.strftime(dtVal, '%Y-%m-%d %H:%M:%S')
 
+        #print("Created at:", createdAt)
         #print("Processing tweet id: ", id)
         #print("Created: ", createdAt)
         #print("Text: ", text)
@@ -31,13 +42,16 @@ def fnProcessTweets(record, userData):
         # Extract tags from entities (if any)
         lsTags, lsMentions = fnProcessEntities(record, userData)
 
+        # This becomes the tweet_id (original id) not be confused with _id auto-created by MongoDB
+        tweetID = int(record["id"])
+
         retweetID = None
-        if "retweet_status" in record:
-            retweetID = fnProcessRetweet(record["retweeted_status"])
+        if "retweeted_status" in record:
+            retweetID = fnProcessRetweet(record["retweeted_status"], userData)
 
         quotedStatusID = None
-        if "quote_status_id" in record:
-            quotedStatusID = record["quote_status_id"]
+        if "quoted_status_id" in record:
+            quotedStatusID = record["quoted_status_id"]
 
         inReplyToStatusID = None
         if "in_reply_to_status_id" in record:
@@ -51,54 +65,81 @@ def fnProcessTweets(record, userData):
         if "place" in record and record["place"] is not None:
             placeID = meta.fnProcessPlace(record["place"], userData)
 
-        # Grab the creator
-        creatorID = user.fnProcessUser(record["user"], userData)
+        # Grab the creator. Using the "created_at" and converting to timestamp since the
+        # the timestamp field is not available in the retweet_status.
+        creatorID = user.fnProcessUser(record["user"], userData, datetime.timestamp(createdAt))
 
-        if (record["quote_count"] != 0 or record["reply_count"] != 0 or 
-            record["retweet_count"] != 0 or record["favorite_count"] != 0):
-            print("Non zero count")
-            print(record)
-            print("Counts:", record["quote_count"], record["reply_count"],
-                    record["retweet_count"], record["favorite_count"])
+        #if (record["quote_count"] != 0 or record["reply_count"] != 0 or 
+        #    record["retweet_count"] != 0 or record["favorite_count"] != 0):
+        #    # TODO: see why this isn't returning correctly since stats are non zero
+        #    print(record)
+        #    print("Counts:", record["quote_count"], record["reply_count"],
+        #            record["retweet_count"], record["favorite_count"])
 
         # Language code is 1:1 (not sparse) it seems
         langCode = record["lang"]
         meta.fnInsertLanguage(langCode, userData)
 
-        tweetCollection = userData["tweetCollection"]
-        tweetCollection.insert_one({
-            "tweet_id":             record["id"],
-            "created_at":           createdAt,
-            "text":                 record["text"],
-            "source":               record["source"],
-            "creator_id":           creatorID,
-            # Reply/retweet references. These IDs are given and 
-            # TODO: we assume for now the tweets are in the feed. If not
-            # this may cause an issue.
-            "reply_to_tweet_id":    inReplyToStatusID,
-            "quote_tweet_id":       quotedStatusID,
-            "retweet_id":           retweetID,
-            "reply_to_user_id":     inReplyToUserID,
-            # Tweet stats
-            "quote_count":          int(record["quote_count"]),
-            "reply_count":          int(record["reply_count"]),
-            "retweet_count":        int(record["retweet_count"]),
-            "favorite_count":       int(record["favorite_count"]),
-            # Tags
-            "hashtags":             lsTags,
-            "user_mentions":        lsMentions,
-            # Other
-            "place_id":             placeID,
-            "lang_code":            langCode   
-        })
+        lsMatches = fnCheckTweet(tweetCollection, tweetID)
 
-        # Is rate defined?
-        if("delay" in userData):
+        if len(lsMatches) == 0:
+            newID = tweetCollection.insert_one({
+                "tweet_id":             tweetID,
+                "created_at":           createdAt,
+                "text":                 record["text"],
+                "source":               record["source"],
+                "creator_id":           creatorID,
+                # Reply/retweet references. These IDs are given and 
+                # TODO: we assume for now the tweets are in the feed. If not
+                # this may cause an issue.
+                "reply_to_tweet_id":    inReplyToStatusID,
+                "quote_tweet_id":       quotedStatusID,
+                "retweet_id":           retweetID,
+                "reply_to_user_id":     inReplyToUserID,
+                # Tweet stats
+                "quote_count":          int(record["quote_count"]),
+                "reply_count":          int(record["reply_count"]),
+                "retweet_count":        int(record["retweet_count"]),
+                "favorite_count":       int(record["favorite_count"]),
+                # Tags
+                "hashtags":             lsTags,
+                "user_mentions":        lsMentions,
+                # Other
+                "place_id":             placeID,
+                "lang_code":            langCode   
+            })
+
+            if tweetID == 1249335207364304898:
+                print("Found it!!!!!!! - insert - new id", newID.inserted_id)
+
+        # More up to date version?
+        elif len(lsMatches) == 1:
+            matchDT = (lsMatches[0])["created_at"]
+            #print("Checking tweet(update): compare original date against new", matchDT, createdAt)
+            if matchDT < createdAt:
+                print("Begin update")
+                print("Updating tweet: ", tweetID)
+                # This could be optimized by avoid this search.
+                tweetCollection.find_one_and_update({"tweet_id": tweetID}, {"$set": { 
+                                        "quote_count": int(record["quote_count"]),
+                                        "reply_count": int(record["reply_count"]),
+                                        "retweet_count": int(record["retweet_count"]),
+                                        "retweet_count": int(record["retweet_count"]),
+                                        "hashtags": lsTags,
+                                        "user_mentions": lsMentions
+                                        }})
+                print("End update")
+        else:
+            print("Error: ended up with more than 1 copy of tweet in collection", tweetID)
+            
+        # Limit rate? Assuming this is a top level object in feed (i.e. not a nested tweet)
+        if(topLevel and "delay" in userData):
             delay = userData["delay"]
             sleep(delay/1000.0) # Actual sleep depends on precision of timer
 
-        # Increment progress
-        userData["processed"] = userData["processed"] + 1
+        # Increment progress if this is a top level object in feed (i.e. not a nested tweet)
+        if topLevel:
+            userData["processed"] = userData["processed"] + 1
 
     except Exception as e:
         print("Error while parsing tweet JSON records from memory", e)
@@ -153,7 +194,11 @@ def fnProcessExtendedEntities(record, userData):
         print("Error while parsing entities JSON records from memory", e)
   
 
+def fnGetTweet(dbConnection, id):
+    tweetCollection = mongodb.fnGetCollections(dbConnection)
 
+    # Fetch based on original id
+    return list(tweetCollection.find({"tweet_id": id}))
 
 def fnGetFiltered(dbConnection, searchArgs):
     lsTweets = []
@@ -162,7 +207,7 @@ def fnGetFiltered(dbConnection, searchArgs):
         maxResults = searchArgs["maxResults"]
 
         print("Get tweets collection")
-        tweetCollection,tagCollection = mongodb.fnGetCollections(dbConnection)
+        tweetCollection = mongodb.fnGetCollections(dbConnection)
 
         searchCriteria = {}
         
@@ -204,7 +249,8 @@ def fnGetFiltered(dbConnection, searchArgs):
         # Only returning those fields needed by the search app to reduce the amount of data
         # that needs to be fetched and sent over the "wire".
         tweetResults = tweetCollection.find(searchCriteria, 
-                            {"tweet_id", "created_at", "creator_id", "text", "hashtags"})
+                            {"tweet_id": 1, "created_at": 1, "creator_id": 1, "text": 1, "hashtags": 1,
+                                "retweet_id": 1, "reply_to_tweet_id": 1, "reply_to_user_id": 1})
 
         if "displayOrder" in searchArgs:
             print("Info: applying display order:", searchArgs["displayOrder"])
@@ -212,6 +258,13 @@ def fnGetFiltered(dbConnection, searchArgs):
         
         # Extract data from iterator and limit to max results requested by user app
         lsTweets = list(tweetResults.limit(maxResults))
+
+        print(lsTweets)
+
+        # Convert dates to string
+        for tweet in lsTweets:
+            tweet["created_at"] = tweet["created_at"].strftime("%m/%d/%Y, %H:%M:%S")
+
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)
 

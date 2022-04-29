@@ -70,8 +70,8 @@
                     <button class="accordion">Time Frame</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            Start Date: <input id="searchStartDate" name="searchStartDate" type="date"><br>
-                            End Date: <input id="searchEndDate" name="searchEndDate" type="date"><br>
+                            Start Date: <input id="searchStartDate" name="searchStartDate" type="datetime-local"><br>
+                            End Date: <input id="searchEndDate" name="searchEndDate" type="datetime-local"><br>
                             Enabled: <input type="checkbox" id="searchTimeFrame" name="searchTimeFrame">
                         </p>
                     </div>
@@ -79,8 +79,12 @@
                     <button class="accordion">Other</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
-                            Max Results: <input type="number" min="50" max="60000" id="maxResults" 
-                                                name="maxResults" placeholder="30" value="30">
+                            Max Results: <input type="number" min="10" max="100" id="maxResults" 
+                                                name="maxResults" placeholder="30" value="30"> <br>
+                            Cache Max: <input type="number" min="1" max="50" id="maxSearchesCached" 
+                                                name="maxSearchesCached" placeholder="30" value="30"> <br>
+                            Retain (Secs): <input type="number" min="1" max="50" id="maxSearchesCached" 
+                                                name="maxSearchesCached" placeholder="30" value="30">
                         </p>
                     </div>
 
@@ -103,7 +107,7 @@
                 
                 <!-- Tab content -->
                 <div id="DataTab" class="tabcontent">
-                    <table id="tweet-data" class="table table-striped" width="100%">
+                    <table id="tweet-data" class="table table-striped myDataTable" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -208,11 +212,18 @@
             var insertProgressBar = document.getElementById("insertProgress")
             var sampleCorona2 = document.getElementById("sampleCorona2")
 
+            // We don't really handle time zones conversion between user
+            // and actual tweet data
+            function fnGetDateTime(dt){
+                dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+                return dt.toISOString().slice(0, 16);
+            }
+
             // Initialize date controls
             var startDate = new Date();
-            startDate.setDate(startDate.getDate() - 30);
-            document.getElementById('searchStartDate').valueAsDate = startDate;
-            document.getElementById('searchEndDate').valueAsDate = new Date();
+            startDate.setDate(startDate.getDate() - 30); // arbitry time period
+            document.getElementById('searchStartDate').value = fnGetDateTime(startDate);
+            document.getElementById('searchEndDate').value = fnGetDateTime(new Date());
 
             // Handle Websocket updates from server showing progress from processing Tweets
             socket.addEventListener('update', event => {
@@ -430,6 +441,7 @@
                 return url
             }
 
+            // Load all tweets for this creator
             function fnLoadCreator(screenName){
                 console.log("Loading creators only")
                 url = "/search?maxResults=" + maxResultsInput.value
@@ -443,18 +455,30 @@
                 tableTweets.ajax.url(url).load()
             }
 
-            function fnLoadHashtag(hashtag) {
-                    console.log("Loading creators only")
-                    url = "/search?maxResults=" + maxResultsInput.value
-                    if (displayOrder != "") {
-                        url = url + "&displayOrder=" + displayOrder
-                    }
-                    url = url + "&hashtagSearchMode=exact" +
-                        "&hashtagText=" + hashtag
+            // Load a single tweet based on ID
+            function fnLoadTweet(tweetID){
+                
 
-                    console.log(url)
-                    tableTweets.ajax.url(url).load()
+                url = "/tweet?tweet_id=" + tweetID
+
+                console.log("Loading tweet", url)
+
+                tableTweets.ajax.url(url).load()
+            }
+
+            // Load all tweets which match this hashtag
+            function fnLoadHashtag(hashtag) {
+                console.log("Loading hashtags")
+                url = "/search?maxResults=" + maxResultsInput.value
+                if (displayOrder != "") {
+                    url = url + "&displayOrder=" + displayOrder
                 }
+                url = url + "&hashtagSearchMode=exact" +
+                    "&hashtagText=" + hashtag
+
+                console.log(url)
+                tableTweets.ajax.url(url).load()
+            }
 
             let tableTweets = new DataTable('#tweet-data', {
                 // options
@@ -462,35 +486,52 @@
                 paging: true,
                 pageLength: 10,
                 processing: true,
+                autoWidth: false,
                 order: [],
-                ajax: {url: "/search?maxResults=" + maxResultsInput.value, type: "GET" },
+                //ajax: {url: "/search?maxResults=" + maxResultsInput.value, type: "GET" },
                 // add column definitions to map your json to the table
                 columns: [
-                    { data: "tweet_id" },
-                    { data: "created_at" },
-                    { data: "creator_screen_name",
-                            "render": function (data, type, row, meta) {
-                                data = "<a href='#' onclick='fnLoadCreator(\"" + data + "\")''>" + 
-                                            data + "</a>";
-                                return data;
+                    { width: "10%", data: "tweet_id" },
+                    { width: "20%", data: "created_at" },
+                    { width: "10%", data: "creator_screen_name",
+                        "render": function (data, type, row, meta) {
+                            outRecord = "<a href='#' onclick='fnLoadCreator(\"" + data + "\")'>" + 
+                                        data + "</a>";
+                            return outRecord;
                         }
                     },
-                    { data: "text" },
-                    { data: "hashtags",
-                            "render": function (hashtags, type, row, meta) {
-                                //console.log(hashtags)
-                                outRecord = "<div>"
-                                for (let tag of hashtags) {
-                                    if (outRecord != "<div>"){
-                                        outRecord = outRecord + ",&nbsp;"
-                                    }
-                                    outRecord = outRecord + "<a href='#' onclick='fnLoadHashtag(\""
-                                        + tag + "\")''>" + tag + "</a>";
-                                }
-                                outRecord = outRecord + "</div>"
-                                console.log(outRecord)
-                                return outRecord;
+                    { width: "40%", data: "text",
+                        "render": function (text, type, row, meta) {
+                            outRec = "<div style='max-width: 400px, overflow-wrap: break-word; word-break: break-word;'>" + 
+                                text + "<br><br>"
+
+                            if (row.retweet_id != null){
+                                outRec = outRec + "<a href='#' onclick='fnLoadTweet(\"" + row.retweet_id + "\")'>Original Tweet" + row.retweet_id + "</a>"
                             }
+                            if (row.reply_to_tweet_id != null){
+                                outRec = outRec + "&nbsp;&nbsp;<a href='#' onclick='fnLoadTweet(" + row.reply_to_tweet_id + ")'>Reply to Tweet</a>"
+                            }
+
+                            outRec + "</div>"
+
+                            return outRec
+                        }
+                    },
+                    { width: "20%", data: "hashtags",
+                        "render": function (hashtags, type, row, meta) {
+                            //console.log(hashtags)
+                            outRecord = "<div style='max-width: 100px, overflow-wrap: break-word; word-break: break-word;'>"
+                            for (let tag of hashtags) {
+                                if (outRecord != "<div>"){
+                                    outRecord = outRecord + ",&nbsp;"
+                                }
+                                outRecord = outRecord + "<a href='#' onclick='fnLoadHashtag(\""
+                                    + tag + "\")''>" + tag + "</a>";
+                            }
+                            outRecord = outRecord + "</div>"
+                            console.log(outRecord)
+                            return outRecord;
+                        }
                     }
                 ]
             });

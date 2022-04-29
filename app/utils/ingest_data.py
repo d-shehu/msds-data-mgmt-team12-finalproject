@@ -110,13 +110,12 @@ def fnReadThreaded(readerData):
             #print (serverInfo)
 
             # Create the database and collection
-            tweetCollection, tagCollection = mongodb.fnGetCollections(mongoConnection)
+            tweetCollection = mongodb.fnGetCollections(mongoConnection)
 
             # Poor man's objected-oriented (i.e. should use class here)
             readerData["mongoConn"] = mongoConnection, 
             readerData["pgConn"] = pgConnection
             readerData["tweetCollection"] = tweetCollection
-            readerData["tagCollection"] = tagCollection
 
             inFilepath = readerData["inFilepath"] # A must
             

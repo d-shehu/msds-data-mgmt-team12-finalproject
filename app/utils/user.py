@@ -6,7 +6,7 @@ from . import utils
 # This function inserts records one at a time as with Mongo
 # Since it "commits" after each insert it can be a bit slow
 # when inserting a larger number of records.
-def fnProcessUser(record, userData):
+def fnProcessUser(record, userData, timestampInMillis):
 
     id = None
 
@@ -32,7 +32,7 @@ def fnProcessUser(record, userData):
 
         # TODO fixed language code
         pgdb.fnInsertUser(pgConnection, id, screenName, "", followersCount, friendsCount,
-                            listedCount, createdAt, 0) 
+                            listedCount, createdAt, 0, timestampInMillis) 
 
     except Exception as e:
         print("Error while parsing place JSON records from memory", e)
