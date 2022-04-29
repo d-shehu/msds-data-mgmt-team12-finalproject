@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import math
+
 from . import pgdb
 from . import utils
 
@@ -9,6 +11,7 @@ from . import utils
 def fnProcessUser(record, userData, timestampInMillis):
 
     id = None
+    influence = 0
 
     try:
         pgConnection    = userData["pgConn"]
@@ -27,6 +30,9 @@ def fnProcessUser(record, userData, timestampInMillis):
         friendsCount    = record["friends_count"]
         listedCount     = record["listed_count"]
 
+        # Weight the followers and friends
+        influence = int(math.sqrt(followersCount*followersCount + friendsCount*friendsCount))
+
         # Handle quotes in the name so query doesn't break
         screenNameModified = utils.fnGetSQLSafeStr(screenName)
 
@@ -37,8 +43,9 @@ def fnProcessUser(record, userData, timestampInMillis):
     except Exception as e:
         print("Error while parsing place JSON records from memory", e)
     
+    #print("{0} with influence {1}".format(screenName, influence))
     # Must return an id
-    return id
+    return id, influence
 
 def fnGetScreenNameFromID(dbConnection, id):
 

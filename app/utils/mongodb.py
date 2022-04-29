@@ -46,7 +46,11 @@ def fnInitDB():
 
         # Create index in descending order as results sorted from most recent
         tweetDB[fnGetTweetCollection()].create_index([('created_at', pymongo.DESCENDING)])
-        
+        tweetDB[fnGetTweetCollection()].create_index([('retweet_count', pymongo.DESCENDING)])
+        tweetDB[fnGetTweetCollection()].create_index([('favorite_count', pymongo.DESCENDING)])
+        tweetDB[fnGetTweetCollection()].create_index([('quote_count', pymongo.DESCENDING)])
+        tweetDB[fnGetTweetCollection()].create_index([('creator_influence', pymongo.DESCENDING)])
+
         fnDisconnect(dbConnection)
     except Exception as error:
         print("Error while creating collection: ", error)
@@ -111,16 +115,16 @@ def fnApplyDisplayOrder(tweetResults, displayOrder):
         tweetResults = tweetResults.sort([("created_at", pymongo.DESCENDING)])
 
     elif displayOrder == utils.DisplayOrder.POPULAR:
-        # TODO: might be interesting to sort by composite of retweet, favorite
+        # Note: might be interesting to sort by composite of retweet, favorite
         tweetResults = tweetResults.sort([("retweet_count", pymongo.DESCENDING), 
                             ("favorite_count", pymongo.DESCENDING)])
     elif displayOrder == utils.DisplayOrder.AUTHORITATIVE:
-        # TODO: this could also be on how authoritative the creator is
+        # Note: this could also be on how authoritative the creator is
         tweetResults = tweetResults.sort([("quote_count", pymongo.DESCENDING)])
 
     elif displayOrder == utils.DisplayOrder.INFLUENCE:
-        # TODO: ditto, might be interesting to get the author's influence
-        tweetResults = tweetResults.sort([("favorite_count", pymongo.DESCENDING)])
+        # Using an approximation of influence to provide an alternate view of tweets
+        tweetResults = tweetResults.sort([("creator_influence", pymongo.DESCENDING)])
     
     else:
         print("Error: unexpected display order", displayOrder)

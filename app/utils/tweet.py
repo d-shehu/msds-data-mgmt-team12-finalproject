@@ -67,7 +67,8 @@ def fnProcessTweets(record, userData, topLevel=True):
 
         # Grab the creator. Using the "created_at" and converting to timestamp since the
         # the timestamp field is not available in the retweet_status.
-        creatorID = user.fnProcessUser(record["user"], userData, datetime.timestamp(createdAt))
+        # Approximate author's influence at the time this tweet was created
+        creatorID,creatorInfluence = user.fnProcessUser(record["user"], userData, datetime.timestamp(createdAt))
 
         #if (record["quote_count"] != 0 or record["reply_count"] != 0 or 
         #    record["retweet_count"] != 0 or record["favorite_count"] != 0):
@@ -101,6 +102,7 @@ def fnProcessTweets(record, userData, topLevel=True):
                 "reply_count":          int(record["reply_count"]),
                 "retweet_count":        int(record["retweet_count"]),
                 "favorite_count":       int(record["favorite_count"]),
+                "creator_influence":    creatorInfluence,
                 # Tags
                 "hashtags":             lsTags,
                 "user_mentions":        lsMentions,
@@ -108,9 +110,6 @@ def fnProcessTweets(record, userData, topLevel=True):
                 "place_id":             placeID,
                 "lang_code":            langCode   
             })
-
-            if tweetID == 1249335207364304898:
-                print("Found it!!!!!!! - insert - new id", newID.inserted_id)
 
         # More up to date version?
         elif len(lsMatches) == 1:
