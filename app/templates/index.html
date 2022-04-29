@@ -79,12 +79,15 @@
                     <button class="accordion">Other</button>
                     <div class="panel">
                         <p style="margin-left: 20px;">
+                            <!-- Only allow up to 100 items for max results so we can use the
+                            Redis cache for the simple search. Simplifies things-->
                             Max Results: <input type="number" min="10" max="100" id="maxResults" 
                                                 name="maxResults" placeholder="30" value="30"> <br>
                             Cache Max: <input type="number" min="1" max="50" id="maxSearchesCached" 
                                                 name="maxSearchesCached" placeholder="10" value="10"> <br>
                             Expiry (Secs): <input type="number" min="1" max="60" id="searchCacheExpiry" 
-                                                name="searchCacheExpiry" placeholder="5" value="5">
+                                                name="searchCacheExpiry" placeholder="5" value="5"> <br>
+                            Enabled: <input type="checkbox" id="searchCacheOn" name="searchCacheOn" checked>
                         </p>
                     </div>
 
@@ -195,6 +198,7 @@
             // Cache
             var maxSearchesCached = document.getElementById("maxSearchesCached")
             var searchCacheExpiry = document.getElementById("searchCacheExpiry")
+            var searchCacheOnCheckbox = document.getElementById("searchCacheOn")
             // Date
             var searchStartDateInput = document.getElementById("searchStartDate")
             var searchEndDateInput = document.getElementById("searchEndDate")
@@ -365,6 +369,13 @@
                     url = url + "&displayOrder=" + displayOrder
                 }
                 // Cache
+                if (searchCacheOnCheckbox.checked) {
+                    url = url + "&searchCacheEnabled=True"
+                }
+                else{
+                    url = url + "&searchCacheEnabled=False"
+                }
+
                 if (maxSearchesCached.value != "") {
                     url = url + "&maxSearchesCached=" + maxSearchesCached.value
                 }

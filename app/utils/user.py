@@ -12,6 +12,7 @@ def fnProcessUser(record, userData, timestampInMillis):
 
     id = None
     influence = 0
+    screenName = ""
 
     try:
         pgConnection    = userData["pgConn"]
@@ -45,7 +46,7 @@ def fnProcessUser(record, userData, timestampInMillis):
     
     #print("{0} with influence {1}".format(screenName, influence))
     # Must return an id
-    return id, influence
+    return id, influence, screenName
 
 def fnGetScreenNameFromID(dbConnection, id):
 

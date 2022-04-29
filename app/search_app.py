@@ -1,3 +1,4 @@
+from warnings import catch_warnings
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 from bson import json_util
@@ -144,12 +145,38 @@ def fnGetTextSearchArgs(args, pgConn):
     return searchArgs
 
 def fnConvertTweetIDs(tweet):
-    tweet["creator_id"] = str(tweet["creator_id"])
-    tweet["reply_to_tweet_id"] = str(tweet["reply_to_tweet_id"])
-    tweet["reply_to_user_id"] = str(tweet["reply_to_user_id"])
-    tweet["retweet_id"] = str(tweet["retweet_id"])
-    tweet["tweet_id"] = str(tweet["tweet_id"])
+    try:
+        tweet["creator_id"] = str(tweet["creator_id"])
+        tweet["reply_to_tweet_id"] = str(tweet["reply_to_tweet_id"])
+        tweet["reply_to_user_id"] = str(tweet["reply_to_user_id"])
+        tweet["retweet_id"] = str(tweet["retweet_id"])
+        tweet["tweet_id"] = str(tweet["tweet_id"])
+    except Exception as e:
+        print("Error while converting IDs to strings", e)
     
+def fnIsSimpleLeaderboardSearch(searchArgs):
+    return (len(searchArgs.keys()) == 2 and "maxResults" in searchArgs 
+                and "displayOrder" in searchArgs)
+
+def fnCleanupData(lsTweets):
+    try:
+        for aTweet in lsTweets:
+            fnConvertTweetIDs(aTweet)
+            # Only convert if it wasn't converted already
+            if not isinstance(aTweet["created_at"], str):
+                aTweet["created_at"] = aTweet["created_at"].strftime("%m/%d/%Y, %H:%M:%S")
+            
+    except Exception as e:
+        print("Error while cleaning up data", e)
+
+def fnFetchScreeName(pgConnection, lsTweets):
+    try:
+        for aTweet in lsTweets:
+            screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
+            aTweet["creator_screen_name"] = screen_name
+    except Exception as e:
+        print("Error while fetching name", e)
+
 @app.route("/search")
 def fnSearch():
     
@@ -158,40 +185,54 @@ def fnSearch():
         mongoConnection = mongodb.fnConnect()
         pgConnection = pgdb.fnConnect()
 
+        maxResults=request.args.get("maxResults")
+        displayOrder=request.args.get("displayOrder")
         maxSearchesCached=int(request.args.get("maxSearchesCached"))
         searchCacheExpiry=int(request.args.get("searchCacheExpiry"))
-
-        redisData = redis.fnConnect(maxSearchesCached, searchCacheExpiry)
+        searchCacheEnabled=bool(request.args.get("searchCacheEnabled"))
 
         searchArgs = fnGetTextSearchArgs(request.args, pgConnection)
 
+        redisData = redis.fnGetRedisData(searchCacheEnabled, maxResults, searchCacheExpiry, 
+                        displayOrder, maxResults, fnIsSimpleLeaderboardSearch(searchArgs))
+
         print("Searching tweets ...")
-        searchArgsAsKey = json.dumps(searchArgs)
+        searchArgsAsKey = json.dumps(searchArgs, default=str)
         # Cached results might be a little stale. Tradeoff between seeing
-        # tweet results immediately
-        cachedRes = redis.fnFetchSearchResults(redisData, searchArgsAsKey)
+        # tweet results immediately and thrashing db. Check cache control also.
+        cachedRes = None
+        if searchCacheEnabled:
+            print("Cache enabled")
+            print(searchArgsAsKey)
+
+            # Try the rank search
+            lsTweets = redis.fnFetchRankResults(redisData)
+            if lsTweets is not None:
+                print("Fetch from rank results")
+                fnCleanupData(lsTweets)
+
+                jsonTweets = json_util.dumps(lsTweets)
+                ret = {"data": json.loads(jsonTweets) }
+            else:
+                cachedRes = redis.fnFetchSearchResults(redisData, searchArgsAsKey)
+        
         if cachedRes is None:
+            print("Fetch from db")
             lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)
 
-            # Replace user ID with screen name
-            for aTweet in lsTweets:
-                screen_name = user.fnGetScreenNameFromID(pgConnection, aTweet["creator_id"])
-                aTweet["creator_screen_name"] = screen_name
-                fnConvertTweetIDs(aTweet)
+            fnCleanupData(lsTweets)
+            fnFetchScreeName(pgConnection, lsTweets)
 
             jsonTweets = json_util.dumps(lsTweets)
             ret = {"data": json.loads(jsonTweets) }
             
-            # Only cache if there were some results
-            if len(lsTweets) > 0:
+            # Only cache if there were some results and cache is enabled
+            if searchCacheEnabled and len(lsTweets) > 0:
                 redis.fnCacheSearchResults(redisData, searchArgsAsKey, jsonTweets)
-            print("Fetch from db")
         else:
-            #print("Data dump:", lsTweets)
-            ret = {"data": json.loads(cachedRes) }
             print("Fetch from cache")
+            ret = {"data": json.loads(cachedRes) }
         
-
         if(mongoConnection is not None):
             mongodb.fnDisconnect(mongoConnection)
 

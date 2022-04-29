@@ -116,8 +116,8 @@ def fnApplyDisplayOrder(tweetResults, displayOrder):
 
     elif displayOrder == utils.DisplayOrder.POPULAR:
         # Note: might be interesting to sort by composite of retweet, favorite
-        tweetResults = tweetResults.sort([("retweet_count", pymongo.DESCENDING), 
-                            ("favorite_count", pymongo.DESCENDING)])
+        tweetResults = tweetResults.sort([("retweet_count", pymongo.DESCENDING)])
+        
     elif displayOrder == utils.DisplayOrder.AUTHORITATIVE:
         # Note: this could also be on how authoritative the creator is
         tweetResults = tweetResults.sort([("quote_count", pymongo.DESCENDING)])

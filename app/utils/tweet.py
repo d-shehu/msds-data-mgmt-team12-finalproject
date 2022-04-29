@@ -3,10 +3,12 @@ from datetime import datetime
 
 from time import sleep
 
+import json
 from bson import json_util
 
 from . import mongodb
 from . import meta
+from . import redis
 from . import user
 
 def fnCheckTweet(tweetCollection, id):
@@ -26,6 +28,7 @@ def fnProcessRetweet(record, userData):
 def fnProcessTweets(record, userData, topLevel=True):
     try:
         tweetCollection = userData["tweetCollection"]
+        redisConn = userData["redisConn"]
         
         # Let's get the required fields
         # ID is given for all tweets and it's always an integer. id_str seems redundant
@@ -68,7 +71,8 @@ def fnProcessTweets(record, userData, topLevel=True):
         # Grab the creator. Using the "created_at" and converting to timestamp since the
         # the timestamp field is not available in the retweet_status.
         # Approximate author's influence at the time this tweet was created
-        creatorID,creatorInfluence = user.fnProcessUser(record["user"], userData, datetime.timestamp(createdAt))
+        tsCreatedAt = datetime.timestamp(createdAt)
+        creatorID,creatorInfluence,screenName = user.fnProcessUser(record["user"], userData, tsCreatedAt)
 
         #if (record["quote_count"] != 0 or record["reply_count"] != 0 or 
         #    record["retweet_count"] != 0 or record["favorite_count"] != 0):
@@ -84,7 +88,7 @@ def fnProcessTweets(record, userData, topLevel=True):
         lsMatches = fnCheckTweet(tweetCollection, tweetID)
 
         if len(lsMatches) == 0:
-            newID = tweetCollection.insert_one({
+            newEntry = {
                 "tweet_id":             tweetID,
                 "created_at":           createdAt,
                 "text":                 record["text"],
@@ -109,7 +113,18 @@ def fnProcessTweets(record, userData, topLevel=True):
                 # Other
                 "place_id":             placeID,
                 "lang_code":            langCode   
-            })
+            }
+            # Insert into mongo
+            newID = tweetCollection.insert_one(newEntry)
+            # Cache top results in Redis by rankings corresponding to how data is stored
+            # Note: we don't really know how many items users will choose to display
+            # so let's keep the top 100 for now and limit UI accordingly.
+            newEntry["screen_name"] = screenName # Need for search
+            jsonNewEntry = json.dumps(newEntry, default=str)
+            redis.fnAddRankedItem(redisConn, "created_at", tsCreatedAt, jsonNewEntry, 100)
+            redis.fnAddRankedItem(redisConn, "retweet_count", newEntry["retweet_count"], jsonNewEntry, 100)
+            redis.fnAddRankedItem(redisConn, "quote_count", newEntry["quote_count"], jsonNewEntry, 100)
+            redis.fnAddRankedItem(redisConn, "creator_influence", creatorInfluence, jsonNewEntry, 100)
 
         # More up to date version?
         elif len(lsMatches) == 1:
@@ -218,38 +233,38 @@ def fnGetFiltered(dbConnection, searchArgs):
         # TODO: this code should move to the mongodb python file
         # Search criteria includes text
         if "searchText" in searchArgs:
-            print("Info: Mongo Search Filter is ", searchArgs["searchText"])
+            #print("Info: Mongo Search Filter is ", searchArgs["searchText"])
             mongodb.fnSearchText(searchCriteria, "text", searchArgs["searchText"])
 
         # Similar to text search but syntax is a bit different. See Mongo class
         if "searchHashtag" in searchArgs:
-            print("Info: Mongo Tag Filter is ", searchArgs["searchHashtag"]) 
+            #print("Info: Mongo Tag Filter is ", searchArgs["searchHashtag"]) 
             mongodb.fnSearchTags(searchCriteria, "hashtags", searchArgs["searchHashtag"], 
                                     searchArgs["searchHashtagMode"])
 
         # Similar to above but with people (3 modes)
         if "searchPeople" in searchArgs:
-            print("Info: Mongo People Filter is ", searchArgs["searchPeople"]) 
+            #print("Info: Mongo People Filter is ", searchArgs["searchPeople"]) 
             mongodb.fnSearchPeople(searchCriteria, searchArgs["searchPeople"], searchArgs["searchPeopleMode"])
 
         # Modify search criteria to include dates?
         if "startDate" in searchArgs and "endDate" in searchArgs:
-            print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
-            print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
+            #print("Info: Mongo Start Date Filter is ", searchArgs["startDate"])
+            #print("Info: Mongo End Date Filter is ", searchArgs["endDate"])
             mongodb.fnSearchRange(searchCriteria, "created_at", searchArgs["startDate"], searchArgs["endDate"])
 
         # Search places (IDs). Based on search parameters (type, name and country) there could be more than
         # one. 
         if "searchPlace" in searchArgs:
-            print("Info: Mongo Searching Places with IDs:", searchArgs["searchPlace"])
+            #print("Info: Mongo Searching Places with IDs:", searchArgs["searchPlace"])
             mongodb.fnSearchIn(searchCriteria, "place_id", searchArgs["searchPlace"])
         
         # Search criteria includes language
         if "searchLang" in searchArgs:
-            print("Info: Searching for Language", searchArgs["searchLang"])
+            #print("Info: Searching for Language", searchArgs["searchLang"])
             mongodb.fnSearchExactValue(searchCriteria, "lang_code", searchArgs["searchLang"])
 
-        print("Info: Mongo search criteria: ", searchCriteria)
+        #print("Info: Mongo search criteria: ", searchCriteria)
         # Only returning those fields needed by the search app to reduce the amount of data
         # that needs to be fetched and sent over the "wire".
         tweetResults = tweetCollection.find(searchCriteria, 
@@ -257,17 +272,11 @@ def fnGetFiltered(dbConnection, searchArgs):
                                 "retweet_id": 1, "reply_to_tweet_id": 1, "reply_to_user_id": 1})
 
         if "displayOrder" in searchArgs:
-            print("Info: applying display order:", searchArgs["displayOrder"])
+            #print("Info: applying display order:", searchArgs["displayOrder"])
             tweetResults = mongodb.fnApplyDisplayOrder(tweetResults, searchArgs["displayOrder"])
         
         # Extract data from iterator and limit to max results requested by user app
         lsTweets = list(tweetResults.limit(maxResults))
-
-        #print(lsTweets)
-
-        # Convert dates to string
-        for tweet in lsTweets:
-            tweet["created_at"] = tweet["created_at"].strftime("%m/%d/%Y, %H:%M:%S")
 
     except Exception as error:
         print("Unable to fetch tweets from Mongo: ", error)

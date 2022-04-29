@@ -10,6 +10,7 @@ import json
 from datetime import datetime
 
 # User library imports
+from . import redis
 from . import tweet
 from . import pgdb
 from . import mongodb
@@ -103,18 +104,20 @@ def fnReadThreaded(readerData):
     try:
         mongoConnection = mongodb.fnConnect()
         pgConnection = pgdb.fnConnect()
+        redisConnection = redis.fnConnect()
 
         if pgConnection is not None and mongoConnection is not None:
             # Check the MongoDB connection by fetching server info
-            serverInfo = mongoConnection.server_info()
+            #serverInfo = mongoConnection.server_info()
             #print (serverInfo)
 
             # Create the database and collection
             tweetCollection = mongodb.fnGetCollections(mongoConnection)
 
             # Poor man's objected-oriented (i.e. should use class here)
-            readerData["mongoConn"] = mongoConnection, 
+            readerData["mongoConn"] = mongoConnection 
             readerData["pgConn"] = pgConnection
+            readerData["redisConn"] = redisConnection
             readerData["tweetCollection"] = tweetCollection
 
             inFilepath = readerData["inFilepath"] # A must
@@ -127,6 +130,7 @@ def fnReadThreaded(readerData):
             mongodb.fnDisconnect(mongoConnection)
         if pgConnection is not None:
             pgdb.fnDisconnect(pgConnection)
+        # Nothing to do for Redis (manages it's own conns)
 
     except Exception as error:
         # Need a thread safe way to output errors
