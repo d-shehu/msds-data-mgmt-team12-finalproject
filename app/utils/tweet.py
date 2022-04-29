@@ -149,7 +149,8 @@ def fnProcessTweets(record, userData, topLevel=True):
         # Limit rate? Assuming this is a top level object in feed (i.e. not a nested tweet)
         if(topLevel and "delay" in userData):
             delay = userData["delay"]
-            sleep(delay/1000.0) # Actual sleep depends on precision of timer
+            if delay != 0:
+                sleep(delay/1000.0) # Actual sleep depends on precision of timer
 
         # Increment progress if this is a top level object in feed (i.e. not a nested tweet)
         if topLevel:

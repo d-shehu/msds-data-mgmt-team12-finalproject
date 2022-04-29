@@ -71,7 +71,7 @@ def fnFetchRankResults(redisData):
             maxResults = redisData["maxResults"]
             displayOrder = utils.fnGetDisplayOrder(redisData["displayOrder"])
 
-            print("Fetching simple cached search results: ", displayOrder)
+            #print("Fetching simple cached search results: ", displayOrder)
             # OK simple searches corresponding to leaderboards (sorted set)
         
             if displayOrder == utils.DisplayOrder.LATEST:

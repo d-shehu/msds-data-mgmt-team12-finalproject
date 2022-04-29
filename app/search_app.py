@@ -7,6 +7,8 @@ import json
 import threading
 from datetime import datetime
 
+from time import process_time
+
 # User library
 from utils import meta
 from utils import pgdb
@@ -197,6 +199,9 @@ def fnSearch():
                         displayOrder, maxResults, fnIsSimpleLeaderboardSearch(searchArgs))
 
         print("Searching tweets ...")
+
+        
+
         searchArgsAsKey = json.dumps(searchArgs, default=str)
         # Cached results might be a little stale. Tradeoff between seeing
         # tweet results immediately and thrashing db. Check cache control also.
@@ -206,7 +211,11 @@ def fnSearch():
             print(searchArgsAsKey)
 
             # Try the rank search
+            startTime = process_time()
             lsTweets = redis.fnFetchRankResults(redisData)
+            executionTime = process_time() - startTime
+            print("Fetch from rank cache time: ", executionTime)
+
             if lsTweets is not None:
                 print("Fetch from rank results")
                 fnCleanupData(lsTweets)
@@ -214,14 +223,21 @@ def fnSearch():
                 jsonTweets = json_util.dumps(lsTweets)
                 ret = {"data": json.loads(jsonTweets) }
             else:
+                startTime = process_time()
                 cachedRes = redis.fnFetchSearchResults(redisData, searchArgsAsKey)
+                executionTime = process_time() - startTime
+                print("Fetch from custom search cache time: ", executionTime)
         
         if cachedRes is None:
             print("Fetch from db")
+            startTime = process_time()
             lsTweets = tweet.fnGetFiltered(mongoConnection, searchArgs)
+            fnFetchScreeName(pgConnection, lsTweets)
+            executionTime = process_time() - startTime
+            print("Fetch from Mongo/Postgres db time: ", executionTime)
 
             fnCleanupData(lsTweets)
-            fnFetchScreeName(pgConnection, lsTweets)
+            
 
             jsonTweets = json_util.dumps(lsTweets)
             ret = {"data": json.loads(jsonTweets) }
