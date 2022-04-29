@@ -313,7 +313,7 @@ def fnGetTweetFromID():
 @app.route("/languages")
 def fnGetLanguages():
     lsLangs = meta.fnGetAllLanguages()
-    print("Get languages", lsLangs)
+    #print("Get languages", lsLangs)
     return {"languages": lsLangs}
 
 @app.route("/place_types")

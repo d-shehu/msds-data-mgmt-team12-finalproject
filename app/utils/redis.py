@@ -26,19 +26,20 @@ def fnCacheSearchResults(redisData, searchCriteria, lsResults):
         # If there are too many search results in cache check
         # to see if they were expired by Redis. If not remove
         # them to free up a slot.
+        print("Num results cached:", connRedis.llen("cachedResults"))
         while connRedis.llen("cachedResults") >= maxSearchResults:
             searchKey = connRedis.lpop("cachedResults")
             # It's possible Redis expired. Don't have a handler
             # to respond to expire so just pop it from this list
             if connRedis.exists(searchKey):
                 print("Removing item from cache")
-                connRedis.delete()
+                connRedis.delete(searchKey)
 
         connRedis.set(searchCriteria, lsResults, expiryTime)
         connRedis.lpush("cachedResults", searchCriteria)
 
     except Exception as e:
-        print("Error: could not store search results in cache")
+        print("Error: could not store search results in cache", e)
 
 def fnFetchSearchResults(redisData, searchCriteria):
     lsResults = None

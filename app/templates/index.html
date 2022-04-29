@@ -359,19 +359,24 @@
                 }
             }
 
-            // Search control functions
-            function fnConstructSearchFilter(){
+            function fnConstructSearchFilterKeyFields(){
                 url = "/search?maxResults=" + maxResultsInput.value
-                if(displayOrder != ""){
+                if (displayOrder != "") {
                     url = url + "&displayOrder=" + displayOrder
                 }
                 // Cache
-                if(maxSearchesCached.value != ""){
+                if (maxSearchesCached.value != "") {
                     url = url + "&maxSearchesCached=" + maxSearchesCached.value
                 }
-                if(searchCacheExpiry.value != ""){
+                if (searchCacheExpiry.value != "") {
                     url = url + "&searchCacheExpiry=" + searchCacheExpiry.value
                 }
+                return url
+            }
+
+            // Search control functions
+            function fnConstructSearchFilter(){
+                url = fnConstructSearchFilterKeyFields()
                 // Text search?
                 if(tweetTextInput.value != ""){
                     //TODO: need to handle special characters
@@ -454,10 +459,7 @@
             // Load all tweets for this creator
             function fnLoadCreator(screenName){
                 console.log("Loading creators only")
-                url = "/search?maxResults=" + maxResultsInput.value
-                if (displayOrder != "") {
-                    url = url + "&displayOrder=" + displayOrder
-                }
+                url = fnConstructSearchFilterKeyFields()
                 url = url + "&peopleSearchMode=from" + 
                             "&peopleText=" + screenName
 
@@ -465,28 +467,24 @@
                 tableTweets.ajax.url(url).load()
             }
 
-            // Load a single tweet based on ID
-            function fnLoadTweet(tweetID){
-                
-
-                url = "/tweet?tweet_id=" + tweetID
-
-                console.log("Loading tweet", url)
-
-                tableTweets.ajax.url(url).load()
-            }
-
             // Load all tweets which match this hashtag
             function fnLoadHashtag(hashtag) {
                 console.log("Loading hashtags")
-                url = "/search?maxResults=" + maxResultsInput.value
-                if (displayOrder != "") {
-                    url = url + "&displayOrder=" + displayOrder
-                }
+                url = url = fnConstructSearchFilterKeyFields()
                 url = url + "&hashtagSearchMode=exact" +
                     "&hashtagText=" + hashtag
 
                 console.log(url)
+                tableTweets.ajax.url(url).load()
+            }
+
+            // Load a single tweet based on ID
+            function fnLoadTweet(tweetID){
+                console.log("Loading tweet")
+                url = "/tweet?tweet_id=" + tweetID
+
+                console.log("Loading tweet", url)
+
                 tableTweets.ajax.url(url).load()
             }
 
